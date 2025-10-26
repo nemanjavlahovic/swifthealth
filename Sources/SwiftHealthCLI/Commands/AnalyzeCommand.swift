@@ -103,11 +103,7 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
-        // TODO: Run analyzers
-        // TODO: Calculate score
-        // TODO: Render output
-
-        // Placeholder output
+        // Run analyzers
         print("SwiftHealth v0.1.0")
         print("Analyzing: \(absolutePath)")
         print()
@@ -120,7 +116,38 @@ struct AnalyzeCommand: AsyncParsableCommand {
         }
 
         print()
-        print("⚠️  Analysis not yet implemented")
+        print("🔍 Running analyzers...")
+        print()
+
+        // Run Git Analyzer
+        if context.has(.git) {
+            let gitAnalyzer = GitAnalyzer()
+            let gitResult = await gitAnalyzer.analyze(context, configuration)
+
+            print("📊 Git Analysis")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            for metric in gitResult.metrics {
+                printMetric(metric)
+            }
+
+            if !gitResult.diagnostics.isEmpty {
+                print()
+                print("⚠️  Diagnostics:")
+                for diagnostic in gitResult.diagnostics {
+                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                    print("  \(icon) \(diagnostic.message)")
+                    if let hint = diagnostic.hint {
+                        print("     → \(hint)")
+                    }
+                }
+            }
+            print()
+        }
+
+        // TODO: Other analyzers
+        // TODO: Calculate score
+        // TODO: Render final output
+
         print()
 
         if verbose {
@@ -143,6 +170,26 @@ struct AnalyzeCommand: AsyncParsableCommand {
         } else {
             return FileManager.default.currentDirectoryPath + "/" + url.path
         }
+    }
+
+    // Helper to print a metric nicely
+    private func printMetric(_ metric: Metric) {
+        let valueStr: String
+        switch metric.value {
+        case .double(let val):
+            valueStr = String(format: "%.2f", val)
+        case .int(let val):
+            valueStr = "\(val)"
+        case .string(let val):
+            valueStr = val
+        case .percent(let val):
+            valueStr = String(format: "%.1f%%", val * 100)
+        case .duration(let val):
+            valueStr = String(format: "%.2fs", val)
+        }
+
+        let unitStr = metric.unit.map { " \($0)" } ?? ""
+        print("  \(metric.title): \(valueStr)\(unitStr)")
     }
 }
 
