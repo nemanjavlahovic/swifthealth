@@ -104,23 +104,29 @@ struct AnalyzeCommand: AsyncParsableCommand {
         }
 
         // Run analyzers
-        print("SwiftHealth v0.1.0")
-        print("Analyzing: \(absolutePath)")
-        print()
+        // Only show TTY output if not JSON format
+        if format != .json {
+            print("SwiftHealth v0.1.0")
+            print("Analyzing: \(absolutePath)")
+            print()
 
-        if context.projectTypes.isEmpty {
-            print("⚠️  No project types detected")
-            print("   Make sure you're in a Swift/iOS project directory")
-        } else {
-            print("✅ Detected: \(context.projectTypes.map { $0.rawValue }.joined(separator: ", "))")
+            if context.projectTypes.isEmpty {
+                print("⚠️  No project types detected")
+                print("   Make sure you're in a Swift/iOS project directory")
+            } else {
+                print("✅ Detected: \(context.projectTypes.map { $0.rawValue }.joined(separator: ", "))")
+            }
+
+            print()
+            print("🔍 Running analyzers...")
+            print()
         }
-
-        print()
-        print("🔍 Running analyzers...")
-        print()
 
         var allMetrics: [Metric] = []
         var allDiagnostics: [Diagnostic] = []
+
+        // Only show progress if not JSON output
+        let showProgress = format != .json
 
         // Run Git Analyzer
         if context.has(.git) {
@@ -129,16 +135,45 @@ struct AnalyzeCommand: AsyncParsableCommand {
             allMetrics.append(contentsOf: gitResult.metrics)
             allDiagnostics.append(contentsOf: gitResult.diagnostics)
 
-            print("📊 Git Analysis")
+            if showProgress {
+                print("📊 Git Analysis")
+                print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                for metric in gitResult.metrics {
+                    printMetric(metric)
+                }
+
+                if !gitResult.diagnostics.isEmpty {
+                    print()
+                    print("⚠️  Diagnostics:")
+                    for diagnostic in gitResult.diagnostics {
+                        let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                        print("  \(icon) \(diagnostic.message)")
+                        if let hint = diagnostic.hint {
+                            print("     → \(hint)")
+                        }
+                    }
+                }
+                print()
+            }
+        }
+
+        // Run Code Analyzer
+        let codeAnalyzer = CodeAnalyzer()
+        let codeResult = await codeAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: codeResult.metrics)
+        allDiagnostics.append(contentsOf: codeResult.diagnostics)
+
+        if showProgress {
+            print("📝 Code Analysis")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            for metric in gitResult.metrics {
+            for metric in codeResult.metrics {
                 printMetric(metric)
             }
 
-            if !gitResult.diagnostics.isEmpty {
+            if !codeResult.diagnostics.isEmpty {
                 print()
                 print("⚠️  Diagnostics:")
-                for diagnostic in gitResult.diagnostics {
+                for diagnostic in codeResult.diagnostics {
                     let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
                     print("  \(icon) \(diagnostic.message)")
                     if let hint = diagnostic.hint {
@@ -149,60 +184,52 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
-        // Run Code Analyzer
-        let codeAnalyzer = CodeAnalyzer()
-        let codeResult = await codeAnalyzer.analyze(context, configuration)
-        allMetrics.append(contentsOf: codeResult.metrics)
-        allDiagnostics.append(contentsOf: codeResult.diagnostics)
-
-        print("📝 Code Analysis")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        for metric in codeResult.metrics {
-            printMetric(metric)
-        }
-
-        if !codeResult.diagnostics.isEmpty {
-            print()
-            print("⚠️  Diagnostics:")
-            for diagnostic in codeResult.diagnostics {
-                let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                print("  \(icon) \(diagnostic.message)")
-                if let hint = diagnostic.hint {
-                    print("     → \(hint)")
-                }
-            }
-        }
-        print()
-
         // Calculate overall health score
         let scoreEngine = ScoreEngine()
         let (normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
         let healthScore = Int(normalizedScore * 100)
 
-        // Render final summary
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print()
-        print("🏥 Health Score: \(healthScore)/100 \(band.emoji) (\(band.label))")
-        print()
+        // Render output based on format
+        if format == .json {
+            let renderer = JSONRenderer()
+            let jsonOutput = renderer.render(
+                metrics: allMetrics,
+                score: healthScore,
+                band: band,
+                diagnostics: allDiagnostics,
+                projectPath: absolutePath,
+                projectTypes: context.projectTypes
+            )
+
+            // Write to file or stdout
+            if let outputPath = jsonOut {
+                let outputURL = URL(fileURLWithPath: getAbsolutePath(outputPath))
+                try jsonOutput.write(to: outputURL, atomically: true, encoding: .utf8)
+            } else {
+                print(jsonOutput)
+            }
+        } else {
+            // TTY output
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print()
+            print("🏥 Health Score: \(healthScore)/100 \(band.emoji) (\(band.label))")
+            print()
+
+            if verbose {
+                print("Configuration:")
+                print("  Weights total: \(configuration.weights.total)")
+                print("  CI fail-under: \(configuration.ci.failUnder)")
+                print()
+            }
+        }
 
         // Check fail-under threshold
         let threshold = failUnder ?? configuration.ci.failUnder
         if healthScore < threshold {
-            print("❌ Score (\(healthScore)) is below threshold (\(threshold))")
+            if showProgress {
+                print("❌ Score (\(healthScore)) is below threshold (\(threshold))")
+            }
             throw ExitCode.failure
-        }
-
-        print()
-
-        if verbose {
-            print("Configuration:")
-            print("  Weights total: \(configuration.weights.total)")
-            print("  CI fail-under: \(configuration.ci.failUnder)")
-        }
-
-        // Exit code handling
-        if let threshold = failUnder {
-            print("Threshold: \(threshold) (not yet enforced)")
         }
     }
 
