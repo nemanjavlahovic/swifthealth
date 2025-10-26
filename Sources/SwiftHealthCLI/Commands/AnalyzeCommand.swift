@@ -144,9 +144,32 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
-        // TODO: Other analyzers
-        // TODO: Calculate score
-        // TODO: Render final output
+        // Run Code Analyzer
+        let codeAnalyzer = CodeAnalyzer()
+        let codeResult = await codeAnalyzer.analyze(context, configuration)
+
+        print("📝 Code Analysis")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        for metric in codeResult.metrics {
+            printMetric(metric)
+        }
+
+        if !codeResult.diagnostics.isEmpty {
+            print()
+            print("⚠️  Diagnostics:")
+            for diagnostic in codeResult.diagnostics {
+                let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                print("  \(icon) \(diagnostic.message)")
+                if let hint = diagnostic.hint {
+                    print("     → \(hint)")
+                }
+            }
+        }
+        print()
+
+        // TODO: Other analyzers (Deps, SwiftLint)
+        // TODO: Calculate overall score
+        // TODO: Render final summary
 
         print()
 
