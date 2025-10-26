@@ -119,10 +119,15 @@ struct AnalyzeCommand: AsyncParsableCommand {
         print("🔍 Running analyzers...")
         print()
 
+        var allMetrics: [Metric] = []
+        var allDiagnostics: [Diagnostic] = []
+
         // Run Git Analyzer
         if context.has(.git) {
             let gitAnalyzer = GitAnalyzer()
             let gitResult = await gitAnalyzer.analyze(context, configuration)
+            allMetrics.append(contentsOf: gitResult.metrics)
+            allDiagnostics.append(contentsOf: gitResult.diagnostics)
 
             print("📊 Git Analysis")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -147,6 +152,8 @@ struct AnalyzeCommand: AsyncParsableCommand {
         // Run Code Analyzer
         let codeAnalyzer = CodeAnalyzer()
         let codeResult = await codeAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: codeResult.metrics)
+        allDiagnostics.append(contentsOf: codeResult.diagnostics)
 
         print("📝 Code Analysis")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -167,9 +174,23 @@ struct AnalyzeCommand: AsyncParsableCommand {
         }
         print()
 
-        // TODO: Other analyzers (Deps, SwiftLint)
-        // TODO: Calculate overall score
-        // TODO: Render final summary
+        // Calculate overall health score
+        let scoreEngine = ScoreEngine()
+        let (normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
+        let healthScore = Int(normalizedScore * 100)
+
+        // Render final summary
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print()
+        print("🏥 Health Score: \(healthScore)/100 \(band.emoji) (\(band.label))")
+        print()
+
+        // Check fail-under threshold
+        let threshold = failUnder ?? configuration.ci.failUnder
+        if healthScore < threshold {
+            print("❌ Score (\(healthScore)) is below threshold (\(threshold))")
+            throw ExitCode.failure
+        }
 
         print()
 
