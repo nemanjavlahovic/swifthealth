@@ -371,15 +371,3 @@ Contributions welcome! Areas of interest:
 MIT License - see LICENSE file for details
 
 ---
-
-## Contact
-
-Built by [Your Name] as a portfolio project demonstrating Swift expertise and software engineering best practices.
-
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
-
----
-
-**SwiftHealth**: Because healthy code leads to healthy teams.
