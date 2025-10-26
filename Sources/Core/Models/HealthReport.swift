@@ -79,16 +79,19 @@ public enum ProjectType: String, Codable, CaseIterable {
 
 /// Health score bands (for color coding and thresholds)
 public enum ScoreBand: String, Codable, CaseIterable {
-    case excellent = "green"    // >= 90
-    case good = "yellow"        // >= 75
-    case poor = "red"           // < 75
+    case excellent = "green"    // >= 80
+    case good = "yellow"        // >= 60
+    case fair = "orange"        // >= 40
+    case poor = "red"           // < 40
 
     /// Determine band from a score
     public static func from(score: Double) -> ScoreBand {
-        if score >= 0.90 {
+        if score >= 0.80 {
             return .excellent
-        } else if score >= 0.75 {
+        } else if score >= 0.60 {
             return .good
+        } else if score >= 0.40 {
+            return .fair
         } else {
             return .poor
         }
@@ -99,7 +102,8 @@ public enum ScoreBand: String, Codable, CaseIterable {
         switch self {
         case .excellent: return "Excellent"
         case .good: return "Good"
-        case .poor: return "Needs Improvement"
+        case .fair: return "Fair"
+        case .poor: return "Poor"
         }
     }
 
@@ -108,6 +112,7 @@ public enum ScoreBand: String, Codable, CaseIterable {
         switch self {
         case .excellent: return "🟢"
         case .good: return "🟡"
+        case .fair: return "🟠"
         case .poor: return "🔴"
         }
     }

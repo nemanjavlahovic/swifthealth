@@ -9,27 +9,44 @@ public struct ScoreEngine {
     /// - Parameters:
     ///   - metrics: All metrics from analyzers
     ///   - config: Configuration with weights and thresholds
-    /// - Returns: Overall score [0.0, 1.0] and score band
+    /// - Returns: Metrics with scores, overall score [0.0, 1.0], and score band
     public func calculateScore(
         metrics: [Metric],
         config: Config
-    ) -> (score: Double, band: ScoreBand) {
+    ) -> (metrics: [Metric], score: Double, band: ScoreBand) {
 
+        var enrichedMetrics: [Metric] = []
         var weightedScores: [(weight: Double, score: Double)] = []
 
-        // Normalize and weight each metric
+        // Normalize each metric and enrich with score
         for metric in metrics {
             if let normalizedScore = normalize(metric: metric, config: config) {
+                // Create new metric with score set
+                let enrichedMetric = Metric(
+                    id: metric.id,
+                    title: metric.title,
+                    category: metric.category,
+                    value: metric.value,
+                    unit: metric.unit,
+                    score: normalizedScore,
+                    details: metric.details
+                )
+                enrichedMetrics.append(enrichedMetric)
+
+                // Add to weighted scores if it has weight
                 let weight = getWeight(for: metric.id, config: config)
                 if weight > 0 {
                     weightedScores.append((weight, normalizedScore))
                 }
+            } else {
+                // Keep metric as-is if we can't normalize it
+                enrichedMetrics.append(metric)
             }
         }
 
         // Calculate weighted average
         guard !weightedScores.isEmpty else {
-            return (0.0, .poor)
+            return (enrichedMetrics, 0.0, .poor)
         }
 
         let totalWeight = weightedScores.reduce(0) { $0 + $1.weight }
@@ -38,7 +55,7 @@ public struct ScoreEngine {
         let finalScore = totalWeight > 0 ? weightedSum / totalWeight : 0.0
         let band = ScoreBand.from(score: finalScore)
 
-        return (finalScore, band)
+        return (enrichedMetrics, finalScore, band)
     }
 
     // MARK: - Normalization
@@ -66,6 +83,12 @@ public struct ScoreEngine {
         case "code.files.avgSize":
             return normalizeFileSize(metric)
 
+        // Lint metrics
+        case "lint.warnings":
+            return normalizeLintWarnings(metric, config.thresholds)
+        case "lint.errors":
+            return normalizeLintErrors(metric, config.thresholds)
+
         default:
             // Unknown metrics default to 0.5 (neutral)
             return 0.5
@@ -85,6 +108,10 @@ public struct ScoreEngine {
         case "code.comments.density", "code.files.avgSize":
             // Split code weight
             return config.weights.codeLOC * 0.5
+        case "lint.warnings":
+            return config.weights.lintWarnings
+        case "lint.errors":
+            return config.weights.lintErrors
         default:
             return 0.0
         }
@@ -189,6 +216,52 @@ public struct ScoreEngine {
         case 201...500: return 0.7  // Getting large
         case 501...1000: return 0.4  // Too large
         default: return 0.2  // Way too large
+        }
+    }
+
+    private func normalizeLintWarnings(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        guard case .int(let count) = metric.value else { return 0.5 }
+
+        let warn = Double(thresholds.lintWarningsWarn)
+        let fail = Double(thresholds.lintWarningsFail)
+
+        // Perfect score if below warn threshold
+        if count == 0 {
+            return 1.0
+        }
+
+        // Linear decay between warn and fail
+        let countDouble = Double(count)
+        if countDouble <= warn {
+            return 1.0 - (countDouble / warn) * 0.2  // 0-50 warnings: 1.0 -> 0.8
+        } else if countDouble <= fail {
+            return 0.8 - ((countDouble - warn) / (fail - warn)) * 0.6  // 50-200 warnings: 0.8 -> 0.2
+        } else {
+            // Beyond fail threshold - exponential decay
+            return max(0.0, 0.2 * exp(-(countDouble - fail) / 100.0))
+        }
+    }
+
+    private func normalizeLintErrors(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        guard case .int(let count) = metric.value else { return 0.5 }
+
+        let warn = Double(thresholds.lintErrorsWarn)
+        let fail = Double(thresholds.lintErrorsFail)
+
+        // Errors are more critical than warnings
+        if count == 0 {
+            return 1.0
+        }
+
+        // Steep penalty for any errors
+        let countDouble = Double(count)
+        if countDouble <= warn {
+            return 0.7  // Even 1 error is problematic
+        } else if countDouble <= fail {
+            return 0.7 - ((countDouble - warn) / (fail - warn)) * 0.5  // 1-10 errors: 0.7 -> 0.2
+        } else {
+            // Beyond fail threshold - severe penalty
+            return max(0.0, 0.2 * exp(-(countDouble - fail) / 5.0))
         }
     }
 }

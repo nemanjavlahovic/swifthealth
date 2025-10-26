@@ -184,16 +184,43 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
+        // Run SwiftLint Analyzer
+        let lintAnalyzer = SwiftLintAnalyzer()
+        let lintResult = await lintAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: lintResult.metrics)
+        allDiagnostics.append(contentsOf: lintResult.diagnostics)
+
+        if showProgress && (!lintResult.metrics.isEmpty || !lintResult.diagnostics.isEmpty) {
+            print("🔍 Lint Analysis")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            for metric in lintResult.metrics {
+                printMetric(metric)
+            }
+
+            if !lintResult.diagnostics.isEmpty {
+                print()
+                print("⚠️  Diagnostics:")
+                for diagnostic in lintResult.diagnostics {
+                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                    print("  \(icon) \(diagnostic.message)")
+                    if let hint = diagnostic.hint {
+                        print("     → \(hint)")
+                    }
+                }
+            }
+            print()
+        }
+
         // Calculate overall health score
         let scoreEngine = ScoreEngine()
-        let (normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
+        let (enrichedMetrics, normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
         let healthScore = Int(normalizedScore * 100)
 
         // Render output based on format
         if format == .json {
             let renderer = JSONRenderer()
             let jsonOutput = renderer.render(
-                metrics: allMetrics,
+                metrics: enrichedMetrics,
                 score: healthScore,
                 band: band,
                 diagnostics: allDiagnostics,
