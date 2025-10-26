@@ -140,6 +140,7 @@ Analyzing: /Users/dev/MyProject
 - **Conventional Commits**: Percentage following conventional format
 - **Branch Strategy**: Detects git-flow, trunk-based, feature-branch patterns
 - **Merge Strategy**: Analyzes merge vs rebase patterns for clean history
+- **Commit Frequency**: Tracks velocity and trends
 
 ### 📝 Code Analysis
 - **Lines of Code**: Total LOC excluding comments and blanks
@@ -147,6 +148,19 @@ Analyzing: /Users/dev/MyProject
 - **File Size**: Ideal 50-200 lines per file (encourages modularity)
 - **Language Breakdown**: Swift vs Objective-C percentage
 - **File Count**: Total source files across project
+
+### 🔍 Lint Analysis (SwiftLint)
+- **Warnings**: Count of SwiftLint warnings with top offender rules
+- **Errors**: Count of SwiftLint errors (heavily penalized)
+- **Graceful Degradation**: Works even if SwiftLint not installed
+- **Configuration Detection**: Finds .swiftlint.yml automatically
+
+### 📦 Dependency Analysis
+- **SPM**: Parses Package.resolved for Swift Package Manager deps
+- **CocoaPods**: Parses Podfile.lock for CocoaPods deps
+- **Carthage**: Parses Cartfile.resolved for Carthage deps
+- **Outdated Detection**: Flags potentially outdated dependencies (lockfile age-based)
+- **Multi-Manager**: Handles projects using multiple dependency managers
 
 ### 🎯 Scoring System
 
@@ -158,8 +172,18 @@ SwiftHealth uses **weighted normalization** to calculate the health score:
    - **Branch Count**: 2-10 ideal, penalizes extremes
    - **Comment Density**: 10-20% sweet spot, penalizes under/over-commenting
    - **File Size**: 50-200 lines optimal, penalizes very large files
+   - **Lint Warnings**: Linear decay 0-50 warnings, exponential beyond 200
+   - **Lint Errors**: Steep penalty (even 1 error = 0.7 score)
+   - **Outdated Deps**: Percentage-based with 10% warn, 30% fail thresholds
+   - **Lockfile Age**: Fresh (<30 days) = 1.0, stale (>90 days) exponential decay
 
-2. Each metric has a configurable weight (default weights sum to 1.0)
+2. Each metric has a configurable weight (default weights sum to 1.0):
+   - Git Recency: 15%
+   - Git Contributors: 10%
+   - Dependency Outdated: 35%
+   - Lint Warnings: 15%
+   - Lint Errors: 15%
+   - Code LOC: 10%
 
 3. Final score = weighted average × 100
 
@@ -178,20 +202,25 @@ Create `.swifthealthrc.json` in your project root:
 ```json
 {
   "weights": {
-    "git.recency": 0.20,
-    "git.contributors": 0.15,
-    "code.loc": 0.25,
-    "code.complexity": 0.20,
-    "tests.coverage": 0.20
+    "git.recency": 0.15,
+    "git.contributors30d": 0.10,
+    "deps.outdated": 0.35,
+    "lint.warnings": 0.15,
+    "lint.errors": 0.15,
+    "code.loc": 0.10
   },
   "thresholds": {
-    "gitRecencyWarnDays": 7,
-    "gitRecencyFailDays": 30,
-    "minTestCoverage": 70
+    "git.recency.days.warn": 7,
+    "git.recency.days.fail": 30,
+    "deps.outdated.warnPct": 0.10,
+    "deps.outdated.failPct": 0.30,
+    "lint.warnings.warn": 50,
+    "lint.warnings.fail": 200,
+    "lint.errors.warn": 1,
+    "lint.errors.fail": 10
   },
   "ci": {
-    "failUnder": 60,
-    "outputFormat": "json"
+    "failUnder": 80
   }
 }
 ```
@@ -325,49 +354,32 @@ case "tests.coverage":
 
 ## Roadmap
 
+### Implemented ✅
+- [x] **Git Analysis**: Comprehensive commit quality, branch strategy, frequency tracking
+- [x] **Code Analysis**: LOC counting, comment density, file size metrics
+- [x] **SwiftLint Integration**: Warnings/errors with graceful degradation
+- [x] **Dependency Analysis**: SPM, CocoaPods, Carthage with outdated detection
+- [x] **JSON Output**: CI/CD ready with per-metric scores
+- [x] **Weighted Scoring**: Configurable weights and thresholds
+
+### Planned
 - [ ] **Test Coverage Analysis**: Parse .xcresult bundles for coverage data
-- [ ] **Dependency Analysis**: Detect outdated dependencies, security vulnerabilities
-- [ ] **Build Performance**: Analyze build times, incremental compilation
-- [ ] **SwiftLint Integration**: Import existing lint rules and findings
+- [ ] **Build Performance**: Analyze build times from Xcode logs
+- [ ] **Online Outdated Detection**: Git remote tag comparison for dependency freshness
 - [ ] **Historical Trends**: Track score over time, show improvement/regression
 - [ ] **HTML Reports**: Beautiful web-based reports with charts
 - [ ] **Xcode Extension**: Run SwiftHealth directly in Xcode
 
 ---
 
-## Interview Talking Points
-
-When discussing this project:
-
-### 1. **Problem-Solving Approach**
-"I identified that existing code quality tools either require heavy infrastructure setup or don't consider Git practices, which are equally important for project health. SwiftHealth combines both in a zero-dependency CLI tool."
-
-### 2. **Technical Depth**
-"The scoring system uses **weighted normalization** - each metric type has a custom algorithm. For example, git recency uses exponential decay, while comment density has a sweet spot curve. This makes the score more meaningful than a simple average."
-
-### 3. **Swift Expertise**
-"I used modern Swift patterns throughout: value types for thread safety, Codable for serialization, async/await for concurrency, and protocol-oriented design for extensibility. The Git analyzer uses the Process API to execute shell commands asynchronously."
-
-### 4. **Real-World Application**
-"This tool is immediately useful in CI/CD pipelines - you can fail builds below a threshold, track health over time, and give developers actionable feedback. The JSON output integrates with any tooling."
-
-### 5. **Trade-offs**
-"I chose to shell out to Git commands instead of using libgit2 because it's simpler, has zero dependencies, and git is already installed everywhere. The performance cost is negligible for the use case."
-
----
-
 ## Contributing
 
 Contributions welcome! Areas of interest:
-- New analyzers (test coverage, dependency analysis, build metrics)
+- New analyzers (test coverage, test analysis, build metrics)
 - Enhanced scoring algorithms
 - Platform support (Linux, Windows)
 - Performance optimizations
 
----
-
 ## License
 
 MIT License - see LICENSE file for details
-
----
