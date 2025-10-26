@@ -89,6 +89,12 @@ public struct ScoreEngine {
         case "lint.errors":
             return normalizeLintErrors(metric, config.thresholds)
 
+        // Dependency metrics
+        case "deps.outdated":
+            return normalizeDepsOutdated(metric, config.thresholds)
+        case "deps.spm.lockfileAge", "deps.pods.lockfileAge", "deps.carthage.lockfileAge":
+            return normalizeLockfileAge(metric)
+
         default:
             // Unknown metrics default to 0.5 (neutral)
             return 0.5
@@ -112,6 +118,10 @@ public struct ScoreEngine {
             return config.weights.lintWarnings
         case "lint.errors":
             return config.weights.lintErrors
+        case "deps.outdated":
+            return config.weights.depsOutdated
+        case "deps.spm.lockfileAge", "deps.pods.lockfileAge", "deps.carthage.lockfileAge":
+            return 0.0  // These inform deps.outdated but don't have separate weight
         default:
             return 0.0
         }
@@ -262,6 +272,55 @@ public struct ScoreEngine {
         } else {
             // Beyond fail threshold - severe penalty
             return max(0.0, 0.2 * exp(-(countDouble - fail) / 5.0))
+        }
+    }
+
+    private func normalizeDepsOutdated(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        guard case .int(let count) = metric.value else { return 0.5 }
+
+        // Extract percentage from details if available
+        let percent: Double
+        if let details = metric.details,
+           case .double(let pct) = details["percent"] {
+            percent = pct
+        } else {
+            // Fallback: assume count is already a percentage
+            percent = Double(count) / 100.0
+        }
+
+        let warnPct = thresholds.depsOutdatedWarnPct
+        let failPct = thresholds.depsOutdatedFailPct
+
+        // Perfect score if no outdated deps
+        if percent == 0 {
+            return 1.0
+        }
+
+        // Linear decay between warn and fail
+        if percent <= warnPct {
+            return 1.0 - (percent / warnPct) * 0.2  // 0-10%: 1.0 -> 0.8
+        } else if percent <= failPct {
+            return 0.8 - ((percent - warnPct) / (failPct - warnPct)) * 0.6  // 10-30%: 0.8 -> 0.2
+        } else {
+            // Beyond fail threshold
+            return max(0.0, 0.2 * exp(-(percent - failPct) * 5.0))
+        }
+    }
+
+    private func normalizeLockfileAge(_ metric: Metric) -> Double {
+        guard case .double(let days) = metric.value else { return 0.5 }
+
+        // Lockfile freshness scoring
+        // 0-30 days = 1.0 (fresh)
+        // 30-90 days = 1.0 -> 0.5 (aging)
+        // 90+ days = 0.5 -> 0.0 (stale)
+
+        if days <= 30 {
+            return 1.0
+        } else if days <= 90 {
+            return 1.0 - ((days - 30) / 60.0) * 0.5  // Linear decay
+        } else {
+            return max(0.0, 0.5 * exp(-(days - 90) / 90.0))  // Exponential decay
         }
     }
 }

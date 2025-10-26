@@ -41,12 +41,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
 
     @Option(
         name: .long,
-        help: "Write HTML output to file"
-    )
-    var htmlOut: String?
-
-    @Option(
-        name: .long,
         help: "Minimum score to pass (0-100). Exits with code 1 if score is below this."
     )
     var failUnder: Int?
@@ -56,12 +50,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
         help: "Verbose output"
     )
     var verbose: Bool = false
-
-    @Flag(
-        name: .long,
-        help: "Quiet mode - only output score"
-    )
-    var quiet: Bool = false
 
     mutating func run() async throws {
         // Get absolute path
@@ -211,6 +199,33 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
+        // Run Dependency Analyzer
+        let depsAnalyzer = DependencyAnalyzer()
+        let depsResult = await depsAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: depsResult.metrics)
+        allDiagnostics.append(contentsOf: depsResult.diagnostics)
+
+        if showProgress && (!depsResult.metrics.isEmpty || !depsResult.diagnostics.isEmpty) {
+            print("📦 Dependency Analysis")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            for metric in depsResult.metrics {
+                printMetric(metric)
+            }
+
+            if !depsResult.diagnostics.isEmpty {
+                print()
+                print("⚠️  Diagnostics:")
+                for diagnostic in depsResult.diagnostics {
+                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                    print("  \(icon) \(diagnostic.message)")
+                    if let hint = diagnostic.hint {
+                        print("     → \(hint)")
+                    }
+                }
+            }
+            print()
+        }
+
         // Calculate overall health score
         let scoreEngine = ScoreEngine()
         let (enrichedMetrics, normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
@@ -295,7 +310,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
 enum OutputFormat: String, ExpressibleByArgument {
     case tty
     case json
-    case html
 
     init?(argument: String) {
         self.init(rawValue: argument.lowercased())

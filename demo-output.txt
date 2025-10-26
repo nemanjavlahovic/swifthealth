@@ -1,0 +1,40 @@
+warning: 'swifthealth': Source files for target SwiftHealthTests should be located under 'Tests/SwiftHealthTests', 'Tests', or a custom sources path can be set with the 'path' property in Package.swift
+Building for debugging...
+[0/3] Write swift-version-49B95AFC49DCD68C.txt
+Build of product 'swifthealth' complete! (0.09s)
+SwiftHealth v0.1.0
+Analyzing: /Users/nemanjavlahovic/swifthealth
+
+✅ Detected: git, spm
+
+🔍 Running analyzers...
+
+📊 Git Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Last Commit Recency: 0.31 days
+  Active Contributors (30 days): 1 count
+  Commit Message Quality: 40.0%
+  Conventional Commits: 0.0% percent
+  Branch Strategy: trunk-based
+  Total Branches: 2 count
+  Merge Strategy: rebase-heavy
+  Merge Commit Percentage: 0.0%
+  Average Commits Per Day: 0.07 commits/day
+  Commit Frequency Trend: increasing
+
+⚠️  Diagnostics:
+  ℹ️ Only 0% of commits follow conventional commit format
+     → See https://www.conventionalcommits.org/
+
+📝 Code Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Total Code Files: 18 files
+  Total Lines of Code: 1985 lines
+  Comment Density: 14.6%
+  Average File Size: 110 lines/file
+  Swift Percentage: 100.0%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏥 Health Score: 64/100 🔴 (Needs Improvement)
+

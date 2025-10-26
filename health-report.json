@@ -1,0 +1,227 @@
+{
+  "band" : "red",
+  "diagnostics" : [
+    {
+      "hint" : "See https:\/\/www.conventionalcommits.org\/",
+      "level" : "info",
+      "message" : "Only 0% of commits follow conventional commit format"
+    }
+  ],
+  "metrics" : [
+    {
+      "category" : "git",
+      "details" : {
+        "author" : "Nemanja Vlahović",
+        "hash" : "a52ea99",
+        "subject" : "Add .gitignore for Swift\/Xcode artifacts"
+      },
+      "id" : "git.recency",
+      "title" : "Last Commit Recency",
+      "unit" : "days",
+      "value" : {
+        "type" : "double",
+        "value" : 0.3050674131485047
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "contributors" : [
+          "nemanja@nemanjavlahovic.com"
+        ]
+      },
+      "id" : "git.contributors30d",
+      "title" : "Active Contributors (30 days)",
+      "unit" : "count",
+      "value" : {
+        "type" : "int",
+        "value" : 1
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "conventionalCommits" : 0,
+        "lowQualityCommits" : 0
+      },
+      "id" : "git.message.quality",
+      "title" : "Commit Message Quality",
+      "value" : {
+        "type" : "percent",
+        "value" : 0.4
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "count" : 0,
+        "total" : 2
+      },
+      "id" : "git.message.conventional",
+      "title" : "Conventional Commits",
+      "unit" : "percent",
+      "value" : {
+        "type" : "percent",
+        "value" : 0
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "featureBranches" : 0,
+        "hasDevelop" : false,
+        "releaseBranches" : 0,
+        "totalBranches" : 2
+      },
+      "id" : "git.branch.strategy",
+      "title" : "Branch Strategy",
+      "value" : {
+        "type" : "string",
+        "value" : "trunk-based"
+      }
+    },
+    {
+      "category" : "git",
+      "id" : "git.branch.count",
+      "title" : "Total Branches",
+      "unit" : "count",
+      "value" : {
+        "type" : "int",
+        "value" : 2
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "linearCommits" : 2,
+        "mergeCommits" : 0,
+        "squashMerges" : 0
+      },
+      "id" : "git.merge.strategy",
+      "title" : "Merge Strategy",
+      "value" : {
+        "type" : "string",
+        "value" : "rebase-heavy"
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "count" : 0,
+        "total" : 2
+      },
+      "id" : "git.merge.percentage",
+      "title" : "Merge Commit Percentage",
+      "value" : {
+        "type" : "percent",
+        "value" : 0
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "commits30d" : 2
+      },
+      "id" : "git.frequency.daily",
+      "title" : "Average Commits Per Day",
+      "unit" : "commits\/day",
+      "value" : {
+        "type" : "double",
+        "value" : 0.06666666666666667
+      }
+    },
+    {
+      "category" : "git",
+      "details" : {
+        "last7Days" : 2,
+        "previous7Days" : 0
+      },
+      "id" : "git.frequency.trend",
+      "title" : "Commit Frequency Trend",
+      "value" : {
+        "type" : "string",
+        "value" : "increasing"
+      }
+    },
+    {
+      "category" : "code",
+      "details" : {
+        "headers" : 0,
+        "objc" : 0,
+        "swift" : 18
+      },
+      "id" : "code.files.total",
+      "title" : "Total Code Files",
+      "unit" : "files",
+      "value" : {
+        "type" : "int",
+        "value" : 18
+      }
+    },
+    {
+      "category" : "code",
+      "details" : {
+        "comments" : 290,
+        "objc" : 0,
+        "swift" : 1985
+      },
+      "id" : "code.loc.total",
+      "title" : "Total Lines of Code",
+      "unit" : "lines",
+      "value" : {
+        "type" : "int",
+        "value" : 1985
+      }
+    },
+    {
+      "category" : "code",
+      "details" : {
+        "commentLines" : 290,
+        "totalLines" : 1985
+      },
+      "id" : "code.comments.density",
+      "title" : "Comment Density",
+      "value" : {
+        "type" : "percent",
+        "value" : 0.14609571788413098
+      }
+    },
+    {
+      "category" : "code",
+      "id" : "code.files.avgSize",
+      "title" : "Average File Size",
+      "unit" : "lines\/file",
+      "value" : {
+        "type" : "int",
+        "value" : 110
+      }
+    },
+    {
+      "category" : "code",
+      "details" : {
+        "objcLOC" : 0,
+        "swiftLOC" : 1985
+      },
+      "id" : "code.language.swift",
+      "title" : "Swift Percentage",
+      "value" : {
+        "type" : "percent",
+        "value" : 1
+      }
+    }
+  ],
+  "project" : {
+    "detected" : [
+      "git",
+      "spm"
+    ],
+    "root" : "\/Users\/nemanjavlahovic\/swifthealth"
+  },
+  "score" : 64,
+  "scoreNormalized" : 0.64,
+  "timestamp" : "2025-10-26T20:03:39Z",
+  "tool" : {
+    "name" : "swifthealth",
+    "version" : "0.1.0"
+  }
+}

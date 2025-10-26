@@ -62,15 +62,15 @@ public struct Weights: Codable, Equatable {
     }
 
     public init(
-        gitRecency: Double = 0.10,
-        gitContributors: Double = 0.05,
-        depsOutdated: Double = 0.15,
-        lintWarnings: Double = 0.10,
-        lintErrors: Double = 0.10,
-        codeLOC: Double = 0.05,
-        codeStructure: Double = 0.05,
-        testCoverage: Double = 0.20,
-        buildAvgTime: Double = 0.20
+        gitRecency: Double = 0.15,
+        gitContributors: Double = 0.10,
+        depsOutdated: Double = 0.35,
+        lintWarnings: Double = 0.15,
+        lintErrors: Double = 0.15,
+        codeLOC: Double = 0.10,
+        codeStructure: Double = 0.00,  // Not yet implemented
+        testCoverage: Double = 0.00,   // Not yet implemented
+        buildAvgTime: Double = 0.00    // Not yet implemented
     ) {
         self.gitRecency = gitRecency
         self.gitContributors = gitContributors
