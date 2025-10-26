@@ -1,6 +1,7 @@
 import ArgumentParser
 import Foundation
 import Core
+import Analyzers
 
 struct AnalyzeCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -85,7 +86,23 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
-        // TODO: Project discovery
+        // Project discovery
+        let detector = ProjectDetector()
+        var context = detector.discover(at: absolutePath)
+
+        // Override offline setting from CLI flag
+        context = ProjectContext(
+            rootPath: context.rootPath,
+            projectTypes: context.projectTypes,
+            offline: offline,
+            artifacts: context.artifacts
+        )
+
+        if verbose {
+            print(detector.summarize(context))
+            print()
+        }
+
         // TODO: Run analyzers
         // TODO: Calculate score
         // TODO: Render output
@@ -94,8 +111,16 @@ struct AnalyzeCommand: AsyncParsableCommand {
         print("SwiftHealth v0.1.0")
         print("Analyzing: \(absolutePath)")
         print()
+
+        if context.projectTypes.isEmpty {
+            print("⚠️  No project types detected")
+            print("   Make sure you're in a Swift/iOS project directory")
+        } else {
+            print("✅ Detected: \(context.projectTypes.map { $0.rawValue }.joined(separator: ", "))")
+        }
+
+        print()
         print("⚠️  Analysis not yet implemented")
-        print("✅ Configuration loaded successfully")
         print()
 
         if verbose {
