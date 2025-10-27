@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.1.0, v1.2.3
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.2.0)'
+        required: true
+        type: string
+
+jobs:
+  build-release:
+    name: Build and Release
+    runs-on: macos-14  # macOS with Apple Silicon
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for release notes
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Setup Swift
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build Universal Binary (x86_64 + arm64)
+        run: |
+          echo "Building for x86_64..."
+          swift build -c release --arch x86_64
+
+          echo "Building for arm64..."
+          swift build -c release --arch arm64
+
+          echo "Creating universal binary with lipo..."
+          lipo -create \
+            .build/arm64-apple-macosx/release/swifthealth \
+            .build/x86_64-apple-macosx/release/swifthealth \
+            -output swifthealth-universal
+
+          chmod +x swifthealth-universal
+
+          echo "✅ Universal binary created"
+          file swifthealth-universal
+          lipo -info swifthealth-universal
+
+      - name: Build Apple Silicon Binary (arm64)
+        run: |
+          echo "Building native arm64 binary..."
+          swift build -c release --arch arm64
+          cp .build/arm64-apple-macosx/release/swifthealth swifthealth-arm64
+          chmod +x swifthealth-arm64
+
+          echo "✅ Apple Silicon binary created"
+          file swifthealth-arm64
+
+      - name: Test binaries
+        run: |
+          echo "Testing universal binary..."
+          ./swifthealth-universal --version
+
+          echo "Testing arm64 binary..."
+          ./swifthealth-arm64 --version
+
+      - name: Generate checksums
+        run: |
+          shasum -a 256 swifthealth-universal > checksums.txt
+          shasum -a 256 swifthealth-arm64 >> checksums.txt
+
+          echo "📋 Checksums:"
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: SwiftHealth ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### Quick Install (Universal Binary - Recommended)
+            ```bash
+            # Download universal binary (works on Intel and Apple Silicon)
+            curl -L -o swifthealth https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.VERSION }}/swifthealth-universal
+
+            # Verify checksum (optional but recommended)
+            curl -L -o checksums.txt https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.VERSION }}/checksums.txt
+            shasum -a 256 -c checksums.txt
+
+            # Make executable and move to PATH
+            chmod +x swifthealth
+            sudo mv swifthealth /usr/local/bin/
+
+            # Verify installation
+            swifthealth --version
+            ```
+
+            ### Apple Silicon Only
+            ```bash
+            # Download arm64-only binary
+            curl -L -o swifthealth https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.VERSION }}/swifthealth-arm64
+            chmod +x swifthealth
+            sudo mv swifthealth /usr/local/bin/
+            ```
+
+            ### Build from Source
+            See the [README](https://github.com/${{ github.repository }}#installation) for build instructions.
+
+            ---
+
+            ## Checksums (SHA256)
+            ```
+            $(cat checksums.txt)
+            ```
+          files: |
+            swifthealth-universal
+            swifthealth-arm64
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,71 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: |
+          swift build -c release
+
+      - name: Run tests
+        run: |
+          swift test
+
+      - name: Verify binary
+        run: |
+          .build/release/swifthealth --version
+          .build/release/swifthealth --help
+
+      - name: Test analyze command (dry run)
+        run: |
+          # Run on the swifthealth project itself as a smoke test
+          .build/release/swifthealth analyze --format json --json-out test-report.json || true
+
+          # Verify JSON output was created
+          if [ -f test-report.json ]; then
+            echo "✅ JSON output created successfully"
+            cat test-report.json | head -20
+          fi
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-report.json
+            .build/release/swifthealth
+          retention-days: 7

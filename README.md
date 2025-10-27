@@ -25,9 +25,36 @@ A command-line tool for analyzing the health of Swift and iOS projects. SwiftHea
 
 ### Installation
 
+#### Option 1: Download Pre-built Binary (Recommended)
+
+```bash
+# Download the latest release (universal binary for Intel + Apple Silicon)
+curl -L -o swifthealth https://github.com/nemanjavlahovic/swifthealth/releases/latest/download/swifthealth-universal
+
+# Verify checksum (recommended)
+curl -L -o checksums.txt https://github.com/nemanjavlahovic/swifthealth/releases/latest/download/checksums.txt
+shasum -a 256 -c checksums.txt --ignore-missing
+
+# Make executable and move to PATH
+chmod +x swifthealth
+sudo mv swifthealth /usr/local/bin/
+
+# Verify installation
+swifthealth --version
+```
+
+**Apple Silicon only:**
+```bash
+curl -L -o swifthealth https://github.com/nemanjavlahovic/swifthealth/releases/latest/download/swifthealth-arm64
+chmod +x swifthealth
+sudo mv swifthealth /usr/local/bin/
+```
+
+#### Option 2: Build from Source
+
 ```bash
 # Clone and build
-git clone https://github.com/yourusername/swifthealth.git
+git clone https://github.com/nemanjavlahovic/swifthealth.git
 cd swifthealth
 swift build -c release
 
@@ -244,21 +271,20 @@ jobs:
   health:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install SwiftHealth
         run: |
-          git clone https://github.com/yourusername/swifthealth.git
-          cd swifthealth
-          swift build -c release
-          cp .build/release/swifthealth /usr/local/bin/
+          curl -L -o swifthealth https://github.com/nemanjavlahovic/swifthealth/releases/latest/download/swifthealth-universal
+          chmod +x swifthealth
+          sudo mv swifthealth /usr/local/bin/
 
       - name: Run Health Check
         run: |
           swifthealth analyze --format json --json-out health.json --fail-under 70
 
       - name: Upload Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: health-report
           path: health.json
