@@ -115,6 +115,7 @@ struct AnalyzeCommand: AsyncParsableCommand {
 
         // Only show progress if not JSON output
         let showProgress = format != .json
+        let asciiRenderer = ASCIIRenderer()
 
         // Run Git Analyzer
         if context.has(.git) {
@@ -252,9 +253,9 @@ struct AnalyzeCommand: AsyncParsableCommand {
             }
         } else {
             // TTY output
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             print()
-            print("🏥 Health Score: \(healthScore)/100 \(band.emoji) (\(band.label))")
+            let scoreMeter = asciiRenderer.healthScoreMeter(score: healthScore, band: band)
+            print(scoreMeter)
             print()
 
             if verbose {
