@@ -91,18 +91,25 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
+        // Initialize renderer
+        let asciiRenderer = ASCIIRenderer()
+
         // Run analyzers
         // Only show TTY output if not JSON format
         if format != .json {
-            print("SwiftHealth v0.1.0")
-            print("Analyzing: \(absolutePath)")
+            // Display header banner
+            let enabledAnalyzers = context.projectTypes.map { $0.rawValue }
+            let banner = asciiRenderer.headerBanner(
+                version: "0.1.0",
+                path: absolutePath,
+                analyzers: enabledAnalyzers
+            )
+            print(banner)
             print()
 
             if context.projectTypes.isEmpty {
                 print("⚠️  No project types detected")
                 print("   Make sure you're in a Swift/iOS project directory")
-            } else {
-                print("✅ Detected: \(context.projectTypes.map { $0.rawValue }.joined(separator: ", "))")
             }
 
             print()
@@ -115,7 +122,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
 
         // Only show progress if not JSON output
         let showProgress = format != .json
-        let asciiRenderer = ASCIIRenderer()
 
         // Run Git Analyzer
         if context.has(.git) {

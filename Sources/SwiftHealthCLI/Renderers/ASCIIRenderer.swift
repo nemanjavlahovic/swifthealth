@@ -31,6 +31,39 @@ public struct ASCIIRenderer {
 
     // MARK: - Public Methods
 
+    /// Render the SwiftHealth header banner
+    /// - Parameters:
+    ///   - version: Version string (e.g., "0.1.0")
+    ///   - path: Project path
+    ///   - analyzers: List of enabled analyzers
+    public func headerBanner(version: String, path: String, analyzers: [String]) -> String {
+        // Compact ASCII art - fits in 70 character width
+        let art1 = "  ███████╗██╗    ██╗██╗███████╗████████╗██╗  ██╗███████╗ █████╗ ██╗  ████████╗██╗  ██╗"
+        let art2 = "  ██╔════╝██║    ██║██║██╔════╝╚══██╔══╝██║  ██║██╔════╝██╔══██╗██║  ╚══██╔══╝██║  ██║"
+        let art3 = "  ███████╗██║ █╗ ██║██║█████╗     ██║   ███████║█████╗  ███████║██║     ██║   ███████║"
+        let art4 = "  ╚════██║██║███╗██║██║██╔══╝     ██║   ██╔══██║██╔══╝  ██╔══██║██║     ██║   ██╔══██║"
+        let art5 = "  ███████║╚███╔███╔╝██║██║        ██║   ██║  ██║███████╗██║  ██║███████╗██║   ██║  ██║"
+        let art6 = "  ╚══════╝ ╚══╝╚══╝ ╚═╝╚═╝        ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝  ╚═╝"
+
+        let lines = [
+            "",
+            art1,
+            art2,
+            art3,
+            art4,
+            art5,
+            art6,
+            "",
+            "  🏥  v\(version)  •  Project Health Analyzer",
+            "",
+            "  📍 \(path)",
+            "  🔍 \(analyzers.joined(separator: ", "))",
+            ""
+        ]
+
+        return lines.joined(separator: "\n")
+    }
+
     /// Render a horizontal bar chart
     /// - Parameters:
     ///   - value: Normalized value [0.0, 1.0]
@@ -56,17 +89,21 @@ public struct ASCIIRenderer {
     /// Render health score meter with band indicators
     public func healthScoreMeter(score: Int, band: ScoreBand) -> String {
         let normalizedScore = Double(score) / 100.0
+        let (meterLine, markerLine) = renderScoreMeterBar(value: normalizedScore)
 
         let lines = [
             box(title: "🏥 HEALTH SCORE", content: [
                 "",
-                "      0    10   20   30   40   50   60   70   80   90   100   ",
-                "      ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤    ",
-                "      \(renderScoreMeterBar(value: normalizedScore))",
-                "      🔴 Poor    🟠 Fair    🟡 Good    🟢 Excellent            ",
-                "                                      ▲                         ",
-                "                                   \(String(format: "%d", score))/100                       ",
+                "    0    10   20   30   40   50   60   70   80   90    100",
+                "    ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤",
+                "    \(meterLine)",
+                "    \(markerLine)",
+                "           🔴 Poor         🟠 Fair    🟡 Good    🟢 Excellent",  // 4 emojis = -4 chars
+                "                                    ▲",
+                "                                 \(String(format: "%d", score))/100",
                 ""
+            ], emojiAdjustments: [
+                5: 4  // Line with 4 emojis needs 4 chars less padding
             ])
         ]
 
@@ -222,35 +259,43 @@ public struct ASCIIRenderer {
 
     // MARK: - Private Helpers
 
-    private func renderScoreMeterBar(value: Double) -> String {
-        let totalWidth = 60
+    private func renderScoreMeterBar(value: Double) -> (String, String) {
+        // The bar width should match the tick marks span
+        // Ticks: ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤
+        // This is 51 characters total spanning positions 6-56
+        // The content between ├ and ┤ is 51 characters
+        // So the bar should be: ├ (at 6) + 51 chars content + ┤ (at 58)
+        let totalWidth = 51
         let filledWidth = Int(Double(totalWidth) * value)
         let emptyWidth = totalWidth - filledWidth
 
         let filled = String(repeating: "▓", count: filledWidth)
         let empty = String(repeating: "░", count: emptyWidth)
 
-        let meterLine = "▕\(filled)\(empty)▏"
+        let meterLine = "├\(filled)\(empty)┤"
 
         // Create the marker line
         let markerPos = Int(Double(totalWidth - 1) * value)
-        let markerLine = "▕" + String(repeating: "─", count: markerPos) + "●" + String(repeating: "─", count: totalWidth - markerPos - 1) + "▏"
+        let markerLine = "├" + String(repeating: "─", count: markerPos) + "●" + String(repeating: "─", count: totalWidth - markerPos - 1) + "┤"
 
-        return meterLine + "\n      " + markerLine
+        return (meterLine, markerLine)
     }
 
-    private func box(title: String, content: [String]) -> String {
+    private func box(title: String, content: [String], emojiAdjustments: [Int: Int] = [:]) -> String {
         let boxWidth = 68
         let topBorder = "╔" + String(repeating: "═", count: boxWidth) + "╗"
         let divider = "╠" + String(repeating: "═", count: boxWidth) + "╣"
         let bottomBorder = "╚" + String(repeating: "═", count: boxWidth) + "╝"
 
         var output = topBorder
-        output += "\n║" + centeredText(title, width: boxWidth) + "║"
+        // Title has 1 emoji (🏥) which is double-width, so subtract 1 from width
+        output += "\n║" + centeredText(title, width: boxWidth - 1) + "║"
         output += "\n" + divider
 
-        for line in content {
-            let padding = max(0, boxWidth - line.count)
+        for (index, line) in content.enumerated() {
+            // Apply emoji adjustment if specified for this line
+            let emojiAdjustment = emojiAdjustments[index] ?? 0
+            let padding = max(0, boxWidth - line.count - emojiAdjustment)
             output += "\n║" + line + String(repeating: " ", count: padding) + "║"
         }
 
