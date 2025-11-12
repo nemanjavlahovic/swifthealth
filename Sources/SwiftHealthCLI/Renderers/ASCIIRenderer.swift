@@ -91,6 +91,17 @@ public struct ASCIIRenderer {
         let normalizedScore = Double(score) / 100.0
         let (meterLine, markerLine) = renderScoreMeterBar(value: normalizedScore)
 
+        // Calculate arrow position (needs to align with the marker)
+        // The meter starts at column 4 (after "    ") and has width 51
+        let totalWidth = 51
+        let arrowPos = 4 + Int(Double(totalWidth) * normalizedScore)
+        let arrowLine = String(repeating: " ", count: arrowPos) + "▲"
+
+        // Calculate score text position (center it under the arrow)
+        let scoreText = "\(String(format: "%d", score))/100"
+        let scoreTextStart = max(0, arrowPos - scoreText.count / 2)
+        let scoreTextLine = String(repeating: " ", count: scoreTextStart) + scoreText
+
         let lines = [
             box(title: "🏥 HEALTH SCORE", content: [
                 "",
@@ -99,8 +110,8 @@ public struct ASCIIRenderer {
                 "    \(meterLine)",
                 "    \(markerLine)",
                 "           🔴 Poor         🟠 Fair    🟡 Good    🟢 Excellent",  // 4 emojis = -4 chars
-                "                                    ▲",
-                "                                 \(String(format: "%d", score))/100",
+                arrowLine,
+                scoreTextLine,
                 ""
             ], emojiAdjustments: [
                 5: 4  // Line with 4 emojis needs 4 chars less padding
