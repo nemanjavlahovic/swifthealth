@@ -233,6 +233,33 @@ struct AnalyzeCommand: AsyncParsableCommand {
             print()
         }
 
+        // Run Dead Code Analyzer
+        let deadCodeAnalyzer = DeadCodeAnalyzer()
+        let deadCodeResult = await deadCodeAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: deadCodeResult.metrics)
+        allDiagnostics.append(contentsOf: deadCodeResult.diagnostics)
+
+        if showProgress && (!deadCodeResult.metrics.isEmpty || !deadCodeResult.diagnostics.isEmpty) {
+            print("🧹 Dead Code Analysis")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            for metric in deadCodeResult.metrics {
+                printMetric(metric)
+            }
+
+            if !deadCodeResult.diagnostics.isEmpty {
+                print()
+                print("⚠️  Diagnostics:")
+                for diagnostic in deadCodeResult.diagnostics {
+                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
+                    print("  \(icon) \(diagnostic.message)")
+                    if let hint = diagnostic.hint {
+                        print("     → \(hint)")
+                    }
+                }
+            }
+            print()
+        }
+
         // Calculate overall health score
         let scoreEngine = ScoreEngine()
         let (enrichedMetrics, normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)

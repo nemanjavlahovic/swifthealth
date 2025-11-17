@@ -33,6 +33,9 @@ public struct ProcessRunner {
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
 
+        // Inherit environment variables from parent process
+        process.environment = ProcessInfo.processInfo.environment
+
         // Set working directory if provided
         if let workingDirectory = workingDirectory {
             process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
