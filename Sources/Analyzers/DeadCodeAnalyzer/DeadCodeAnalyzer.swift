@@ -44,7 +44,20 @@ public struct DeadCodeAnalyzer: Analyzer {
         // 4. Group by kind to get breakdown
         let kindGroups = Dictionary(grouping: unusedResults, by: { $0.kind })
 
-        // 5. Create metrics
+        // 5. Create metrics with detailed results stored in details
+        let kindsArray: [CodableValue] = kindGroups.map { .string("\($0.key): \($0.value.count)") }
+        let itemsArray: [CodableValue] = unusedResults.map { result in
+            let lineNumberValue: CodableValue = result.lineNumber.map { .int($0) } ?? .string("?")
+            return .dictionary([
+                "name": .string(result.name),
+                "kind": .string(result.kind),
+                "kindDescription": .string(result.kindDescription),
+                "location": .string(result.location),
+                "filePath": .string(result.filePath ?? "unknown"),
+                "lineNumber": lineNumberValue
+            ])
+        }
+
         metrics.append(Metric(
             id: "deadcode.unused_count",
             title: "Unused Declarations",
@@ -53,7 +66,8 @@ public struct DeadCodeAnalyzer: Analyzer {
             unit: "count",
             details: [
                 "total": .int(results.count),
-                "kinds": .array(kindGroups.map { .string("\($0.key): \($0.value.count)") })
+                "kinds": .array(kindsArray),
+                "items": .array(itemsArray)
             ]
         ))
 

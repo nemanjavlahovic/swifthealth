@@ -45,6 +45,7 @@ public struct Weights: Codable, Equatable {
     public let lintWarnings: Double
     public let lintErrors: Double
     public let codeLOC: Double
+    public let deadCodeUnused: Double
     public let codeStructure: Double
     public let testCoverage: Double
     public let buildAvgTime: Double
@@ -56,18 +57,20 @@ public struct Weights: Codable, Equatable {
         case lintWarnings = "lint.warnings"
         case lintErrors = "lint.errors"
         case codeLOC = "code.loc"
+        case deadCodeUnused = "deadcode.unused"
         case codeStructure = "code.structure"
         case testCoverage = "test.coverage"
         case buildAvgTime = "build.avgTime"
     }
 
     public init(
-        gitRecency: Double = 0.15,
-        gitContributors: Double = 0.10,
+        gitRecency: Double = 0.05,
+        gitContributors: Double = 0.05,
         depsOutdated: Double = 0.35,
         lintWarnings: Double = 0.15,
         lintErrors: Double = 0.15,
         codeLOC: Double = 0.10,
+        deadCodeUnused: Double = 0.15,
         codeStructure: Double = 0.00,  // Not yet implemented
         testCoverage: Double = 0.00,   // Not yet implemented
         buildAvgTime: Double = 0.00    // Not yet implemented
@@ -78,6 +81,7 @@ public struct Weights: Codable, Equatable {
         self.lintWarnings = lintWarnings
         self.lintErrors = lintErrors
         self.codeLOC = codeLOC
+        self.deadCodeUnused = deadCodeUnused
         self.codeStructure = codeStructure
         self.testCoverage = testCoverage
         self.buildAvgTime = buildAvgTime
@@ -86,8 +90,8 @@ public struct Weights: Codable, Equatable {
     /// Calculate total weight (should be <= 1.0)
     public var total: Double {
         gitRecency + gitContributors + depsOutdated +
-        lintWarnings + lintErrors + codeLOC + codeStructure +
-        testCoverage + buildAvgTime
+        lintWarnings + lintErrors + codeLOC + deadCodeUnused +
+        codeStructure + testCoverage + buildAvgTime
     }
 }
 
@@ -107,6 +111,10 @@ public struct Thresholds: Codable, Equatable {
     public let lintErrorsWarn: Int
     public let lintErrorsFail: Int
 
+    // Dead code thresholds
+    public let deadCodeUnusedWarn: Int
+    public let deadCodeUnusedFail: Int
+
     // Test coverage thresholds
     public let testCoverageWarn: Double
     public let testCoverageFail: Double
@@ -124,6 +132,8 @@ public struct Thresholds: Codable, Equatable {
         case lintWarningsFail = "lint.warnings.fail"
         case lintErrorsWarn = "lint.errors.warn"
         case lintErrorsFail = "lint.errors.fail"
+        case deadCodeUnusedWarn = "deadcode.unused.warn"
+        case deadCodeUnusedFail = "deadcode.unused.fail"
         case testCoverageWarn = "test.coverage.warn"
         case testCoverageFail = "test.coverage.fail"
         case buildAvgTimeWarnSec = "build.avgTime.warnSec"
@@ -139,6 +149,8 @@ public struct Thresholds: Codable, Equatable {
         lintWarningsFail: Int = 200,
         lintErrorsWarn: Int = 1,
         lintErrorsFail: Int = 10,
+        deadCodeUnusedWarn: Int = 10,
+        deadCodeUnusedFail: Int = 50,
         testCoverageWarn: Double = 0.70,
         testCoverageFail: Double = 0.50,
         buildAvgTimeWarnSec: Int = 45,
@@ -152,6 +164,8 @@ public struct Thresholds: Codable, Equatable {
         self.lintWarningsFail = lintWarningsFail
         self.lintErrorsWarn = lintErrorsWarn
         self.lintErrorsFail = lintErrorsFail
+        self.deadCodeUnusedWarn = deadCodeUnusedWarn
+        self.deadCodeUnusedFail = deadCodeUnusedFail
         self.testCoverageWarn = testCoverageWarn
         self.testCoverageFail = testCoverageFail
         self.buildAvgTimeWarnSec = buildAvgTimeWarnSec

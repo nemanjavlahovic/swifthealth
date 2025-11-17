@@ -95,6 +95,10 @@ public struct ScoreEngine {
         case "deps.spm.lockfileAge", "deps.pods.lockfileAge", "deps.carthage.lockfileAge":
             return normalizeLockfileAge(metric)
 
+        // Dead code metrics
+        case "deadcode.unused_count":
+            return normalizeDeadCodeUnused(metric, config.thresholds)
+
         default:
             // Unknown metrics default to 0.5 (neutral)
             return 0.5
@@ -122,6 +126,8 @@ public struct ScoreEngine {
             return config.weights.depsOutdated
         case "deps.spm.lockfileAge", "deps.pods.lockfileAge", "deps.carthage.lockfileAge":
             return 0.0  // These inform deps.outdated but don't have separate weight
+        case "deadcode.unused_count":
+            return config.weights.deadCodeUnused
         default:
             return 0.0
         }
@@ -321,6 +327,29 @@ public struct ScoreEngine {
             return 1.0 - ((days - 30) / 60.0) * 0.5  // Linear decay
         } else {
             return max(0.0, 0.5 * exp(-(days - 90) / 90.0))  // Exponential decay
+        }
+    }
+
+    private func normalizeDeadCodeUnused(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        guard case .int(let count) = metric.value else { return 0.5 }
+
+        let warn = Double(thresholds.deadCodeUnusedWarn)
+        let fail = Double(thresholds.deadCodeUnusedFail)
+
+        // Perfect score if no dead code
+        if count == 0 {
+            return 1.0
+        }
+
+        // Linear decay between warn and fail
+        let countDouble = Double(count)
+        if countDouble <= warn {
+            return 1.0 - (countDouble / warn) * 0.2  // 0-10 items: 1.0 -> 0.8
+        } else if countDouble <= fail {
+            return 0.8 - ((countDouble - warn) / (fail - warn)) * 0.6  // 10-50 items: 0.8 -> 0.2
+        } else {
+            // Beyond fail threshold - exponential decay
+            return max(0.0, 0.2 * exp(-(countDouble - fail) / 50.0))
         }
     }
 }

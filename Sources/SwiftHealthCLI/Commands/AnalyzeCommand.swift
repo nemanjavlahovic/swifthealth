@@ -246,6 +246,13 @@ struct AnalyzeCommand: AsyncParsableCommand {
                 printMetric(metric)
             }
 
+            // Show detailed breakdown when verbose is enabled
+            if verbose, let metric = deadCodeResult.metrics.first,
+               let details = metric.details,
+               case let .array(items) = details["items"] {
+                printDeadCodeDetails(items)
+            }
+
             if !deadCodeResult.diagnostics.isEmpty {
                 print()
                 print("⚠️  Diagnostics:")
@@ -337,6 +344,56 @@ struct AnalyzeCommand: AsyncParsableCommand {
 
         let unitStr = metric.unit.map { " \($0)" } ?? ""
         print("  \(metric.title): \(valueStr)\(unitStr)")
+    }
+
+    private func printDeadCodeDetails(_ items: [CodableValue]) {
+        // Group items by kind
+        var kindGroups: [String: [(name: String, location: String, filePath: String, lineNumber: String)]] = [:]
+
+        for item in items {
+            guard case let .dictionary(itemDict) = item,
+                  case let .string(name)? = itemDict["name"],
+                  case let .string(kindDesc)? = itemDict["kindDescription"],
+                  case let .string(location)? = itemDict["location"],
+                  case let .string(filePath)? = itemDict["filePath"],
+                  let lineNumber = itemDict["lineNumber"] else {
+                continue
+            }
+
+            let lineStr: String
+            if case let .int(line) = lineNumber {
+                lineStr = "\(line)"
+            } else if case let .string(line) = lineNumber {
+                lineStr = line
+            } else {
+                lineStr = "?"
+            }
+
+            if kindGroups[kindDesc] == nil {
+                kindGroups[kindDesc] = []
+            }
+            kindGroups[kindDesc]?.append((name: name, location: location, filePath: filePath, lineNumber: lineStr))
+        }
+
+        // Sort kind groups by count (descending)
+        let sortedKinds = kindGroups.sorted { $0.value.count > $1.value.count }
+
+        print()
+        print("  📋 Detailed Breakdown:")
+        print()
+
+        for (kind, items) in sortedKinds {
+            let kindName = kind.capitalized + "s"
+            print("    \(kindName) (\(items.count) total):")
+
+            for item in items {
+                // Shorten file path for readability
+                let shortPath = item.filePath.components(separatedBy: "/").suffix(2).joined(separator: "/")
+                print("      • \(item.name)")
+                print("        \(shortPath):\(item.lineNumber)")
+            }
+            print()
+        }
     }
 }
 
