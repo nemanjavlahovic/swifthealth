@@ -2,12 +2,13 @@ import Foundation
 import Core
 
 /// Renders health report as JSON
-public struct JSONRenderer {
+struct JSONRenderer {
 
-    public init() {}
+    init() {}
 
+    // periphery:ignore - Reserved for --format json flag
     /// Render health report as JSON
-    public func render(
+    func render(
         metrics: [Metric],
         score: Int,
         band: ScoreBand,
@@ -44,12 +45,20 @@ public struct JSONRenderer {
 // MARK: - JSON Report Structure
 
 private struct JSONReport: Codable {
+    // periphery:ignore - Required for JSON encoding
     let tool: ToolInfo
+    // periphery:ignore - Required for JSON encoding
     let project: ProjectInfo
+    // periphery:ignore - Required for JSON encoding
     let metrics: [Metric]
+    // periphery:ignore - Required for JSON encoding
     let score: Int
+    // periphery:ignore - Required for JSON encoding
     let scoreNormalized: Double
+    // periphery:ignore - Required for JSON encoding
     let band: String
+    // periphery:ignore - Required for JSON encoding
     let diagnostics: [Diagnostic]
+    // periphery:ignore - Required for JSON encoding
     let timestamp: String
 }

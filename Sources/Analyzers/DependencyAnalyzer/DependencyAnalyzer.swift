@@ -3,10 +3,12 @@ import Core
 
 /// Unified analyzer for all dependency managers (SPM, CocoaPods, Carthage)
 public struct DependencyAnalyzer: Analyzer {
+    // periphery:ignore - Required by Analyzer protocol
     public let id = "dependencies"
 
     public init() {}
 
+    // periphery:ignore:parameters config - Reserved for future config-based filtering
     public func analyze(_ context: ProjectContext, _ config: Config) async -> AnalyzerResult {
         var allMetrics: [Metric] = []
         var allDiagnostics: [Diagnostic] = []

@@ -1,15 +1,17 @@
 import Foundation
 
 /// Utility for running shell commands and capturing output
-public struct ProcessRunner {
+struct ProcessRunner {
 
     /// Result of running a process
-    public struct ProcessResult {
-        public let standardOutput: String
-        public let standardError: String
-        public let exitCode: Int32
+    struct ProcessResult {
+        let standardOutput: String
+        // periphery:ignore - Available for error handling
+        let standardError: String
+        // periphery:ignore - Available for detailed exit code checking
+        let exitCode: Int32
 
-        public var succeeded: Bool {
+        var succeeded: Bool {
             exitCode == 0
         }
     }
@@ -21,7 +23,7 @@ public struct ProcessRunner {
     ///   - workingDirectory: Directory to run command in
     ///   - timeout: Maximum execution time in seconds (default: 30)
     /// - Returns: ProcessResult with output and exit code
-    public static func run(
+    static func run(
         _ executable: String,
         arguments: [String],
         workingDirectory: String? = nil,
@@ -51,7 +53,7 @@ public struct ProcessRunner {
         try process.run()
 
         // Wait for completion with timeout
-        let completed = await withCheckedContinuation { continuation in
+        _ = await withCheckedContinuation { continuation in
             // Start timeout timer
             let timer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
                 if process.isRunning {
@@ -86,7 +88,7 @@ public struct ProcessRunner {
     ///   - arguments: Git command arguments (e.g., ["log", "-1"])
     ///   - repoPath: Path to git repository
     /// - Returns: ProcessResult
-    public static func runGit(
+    static func runGit(
         _ arguments: [String],
         in repoPath: String
     ) async throws -> ProcessResult {
@@ -99,13 +101,14 @@ public struct ProcessRunner {
     }
 }
 
+// periphery:ignore - Reserved for enhanced error handling
 /// Errors that can occur when running processes
-public enum ProcessError: Error, CustomStringConvertible {
+enum ProcessError: Error, CustomStringConvertible {
     case commandNotFound(String)
     case executionFailed(String, Int32)
     case timeout(String)
 
-    public var description: String {
+    var description: String {
         switch self {
         case .commandNotFound(let cmd):
             return "Command not found: \(cmd)"

@@ -160,7 +160,7 @@ public struct ConfigLoader {
 }
 
 /// Errors that can occur during config loading/validation
-public enum ConfigError: Error, CustomStringConvertible {
+enum ConfigError: Error, CustomStringConvertible {
     case fileReadError(String, Error)
     case fileWriteError(String, Error)
     case invalidJSON(String, Error)
@@ -170,7 +170,7 @@ public enum ConfigError: Error, CustomStringConvertible {
     case invalidCISettings(String)
     case encodingError(Error)
 
-    public var description: String {
+    var description: String {
         switch self {
         case .fileReadError(let path, let error):
             return "Failed to read config file at \(path): \(error.localizedDescription)"

@@ -1,5 +1,6 @@
 import Foundation
 
+// periphery:ignore - Reserved for JSON export and future API
 /// The complete health report for a project
 public struct HealthReport: Codable, Equatable {
     /// Tool metadata
@@ -44,7 +45,9 @@ public struct HealthReport: Codable, Equatable {
 
 /// Information about the swifthealth tool itself
 public struct ToolInfo: Codable, Equatable {
+    // periphery:ignore - Required for JSON encoding
     public let name: String
+    // periphery:ignore - Required for JSON encoding
     public let version: String
 
     public init(name: String = "swifthealth", version: String) {
@@ -56,9 +59,11 @@ public struct ToolInfo: Codable, Equatable {
 /// Information about the analyzed project
 public struct ProjectInfo: Codable, Equatable {
     /// Absolute path to the project root
+    // periphery:ignore - Required for JSON encoding
     public let root: String
 
     /// Detected project types
+    // periphery:ignore - Required for JSON encoding
     public let detected: [ProjectType]
 
     public init(root: String, detected: [ProjectType]) {
@@ -97,6 +102,7 @@ public enum ScoreBand: String, Codable, CaseIterable {
         }
     }
 
+    // periphery:ignore - Reserved for text-based output
     /// Human-readable label
     public var label: String {
         switch self {
@@ -107,6 +113,7 @@ public enum ScoreBand: String, Codable, CaseIterable {
         }
     }
 
+    // periphery:ignore - Reserved for rich text output
     /// Emoji representation
     public var emoji: String {
         switch self {

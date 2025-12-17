@@ -6,10 +6,15 @@ struct PeripheryResult: Codable {
     let kind: String
     let hints: [String]
     let location: String
+    // periphery:ignore - Required for JSON decoding from Periphery output
     let accessibility: String
-    let modules: [String]?  // Optional - some results don't have modules
+    // periphery:ignore - Required for JSON decoding from Periphery output
+    let modules: [String]?
+    // periphery:ignore - Required for JSON decoding from Periphery output
     let modifiers: [String]?
+    // periphery:ignore - Required for JSON decoding from Periphery output
     let attributes: [String]?
+    // periphery:ignore - Required for JSON decoding from Periphery output
     let ids: [String]?
 
     /// Check if this result represents unused code
@@ -17,6 +22,7 @@ struct PeripheryResult: Codable {
         hints.contains("unused")
     }
 
+    // periphery:ignore - Available for diagnostic output
     /// Check if this result represents redundant public accessibility
     var isRedundantPublic: Bool {
         hints.contains("redundantPublicAccessibility")

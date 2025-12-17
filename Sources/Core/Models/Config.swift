@@ -15,6 +15,7 @@ public struct Config: Codable, Equatable {
     public let ci: CISettings
 
     /// Plugin paths (v1.0 feature)
+    /// periphery:ignore - Reserved for future plugin system
     public let plugins: [String]
 
     public init(

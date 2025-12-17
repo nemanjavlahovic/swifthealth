@@ -2,12 +2,12 @@ import Foundation
 import Core
 
 /// Analyzes CocoaPods dependencies
-public struct CocoaPodsAnalyzer {
+struct CocoaPodsAnalyzer {
 
-    public init() {}
+    init() {}
 
     /// Analyze CocoaPods dependencies from Podfile.lock
-    public func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
+    func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
         var metrics: [Metric] = []
         var diagnostics: [Diagnostic] = []
 

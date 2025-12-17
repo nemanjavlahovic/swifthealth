@@ -3,6 +3,7 @@ import Core
 
 /// Analyzes git repository health and practices
 public struct GitAnalyzer: Analyzer {
+    // periphery:ignore - Required by Analyzer protocol
     public let id = "git"
 
     /// Number of commits to analyze for quality metrics
@@ -10,6 +11,7 @@ public struct GitAnalyzer: Analyzer {
 
     public init() {}
 
+    // periphery:ignore:parameters config - Reserved for future config-based filtering
     public func analyze(_ context: ProjectContext, _ config: Config) async -> AnalyzerResult {
         guard context.has(.git) else {
             return .unavailable(reason: "Not a git repository")

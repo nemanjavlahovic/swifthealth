@@ -2,14 +2,15 @@ import Foundation
 import Core
 
 /// Renders beautiful ASCII art components for SwiftHealth
-public struct ASCIIRenderer {
+struct ASCIIRenderer {
 
     // MARK: - Configuration
 
     private let colorsEnabled: Bool
+    // periphery:ignore - Reserved for responsive layout
     private let terminalWidth: Int
 
-    public init(colorsEnabled: Bool? = nil, terminalWidth: Int = 80) {
+    init(colorsEnabled: Bool? = nil, terminalWidth: Int = 80) {
         // Respect NO_COLOR environment variable
         if let colorsEnabled = colorsEnabled {
             self.colorsEnabled = colorsEnabled
@@ -20,23 +21,30 @@ public struct ASCIIRenderer {
     }
 
     // MARK: - ANSI Color Codes
-
+    // periphery:ignore - Reserved for colored output
     private let colorGreen = "\u{001B}[32m"
+    // periphery:ignore - Reserved for colored output
     private let colorYellow = "\u{001B}[33m"
+    // periphery:ignore - Reserved for colored output
     private let colorOrange = "\u{001B}[38;5;208m"
+    // periphery:ignore - Reserved for colored output
     private let colorRed = "\u{001B}[31m"
+    // periphery:ignore - Reserved for colored output
     private let colorCyan = "\u{001B}[1;36m"
+    // periphery:ignore - Reserved for colored output
     private let colorGray = "\u{001B}[90m"
+    // periphery:ignore - Reserved for colored output
     private let colorReset = "\u{001B}[0m"
 
     // MARK: - Public Methods
 
+    // periphery:ignore - Reserved for verbose mode
     /// Render the SwiftHealth header banner
     /// - Parameters:
     ///   - version: Version string (e.g., "0.1.0")
     ///   - path: Project path
     ///   - analyzers: List of enabled analyzers
-    public func headerBanner(version: String, path: String, analyzers: [String]) -> String {
+    func headerBanner(version: String, path: String, analyzers: [String]) -> String {
         // Compact ASCII art - fits in 70 character width
         let art1 = "  ███████╗██╗    ██╗██╗███████╗████████╗██╗  ██╗███████╗ █████╗ ██╗  ████████╗██╗  ██╗"
         let art2 = "  ██╔════╝██║    ██║██║██╔════╝╚══██╔══╝██║  ██║██╔════╝██╔══██╗██║  ╚══██╔══╝██║  ██║"
@@ -64,13 +72,14 @@ public struct ASCIIRenderer {
         return lines.joined(separator: "\n")
     }
 
+    // periphery:ignore - Reserved for detailed metrics view
     /// Render a horizontal bar chart
     /// - Parameters:
     ///   - value: Normalized value [0.0, 1.0]
     ///   - width: Bar width in characters
     ///   - filled: Character for filled portion
     ///   - empty: Character for empty portion
-    public func horizontalBar(
+    func horizontalBar(
         value: Double,
         width: Int = 12,
         filled: Character = "█",
@@ -86,8 +95,10 @@ public struct ASCIIRenderer {
         return "[\(filledPart)\(emptyPart)]"
     }
 
+    // periphery:ignore - Reserved for detailed output mode
+    // periphery:ignore:parameters band - Reserved for colored band display
     /// Render health score meter with band indicators
-    public func healthScoreMeter(score: Int, band: ScoreBand) -> String {
+    func healthScoreMeter(score: Int, band: ScoreBand) -> String {
         let normalizedScore = Double(score) / 100.0
         let (meterLine, markerLine) = renderScoreMeterBar(value: normalizedScore)
 
@@ -121,8 +132,9 @@ public struct ASCIIRenderer {
         return lines.joined(separator: "\n")
     }
 
+    // periphery:ignore - Reserved for verbose metrics display
     /// Render a category analysis box with metrics
-    public func categoryBox(
+    func categoryBox(
         title: String,
         emoji: String,
         score: Double,
@@ -174,8 +186,9 @@ public struct ASCIIRenderer {
         return output
     }
 
+    // periphery:ignore - Reserved for category breakdown display
     /// Calculate category-level scores from metrics
-    public func calculateCategoryScores(
+    func calculateCategoryScores(
         metrics: [Metric]
     ) -> [(name: String, score: Double)] {
         var categoryScores: [String: (totalScore: Double, count: Int)] = [:]
@@ -207,8 +220,9 @@ public struct ASCIIRenderer {
         return results.sorted { $0.name < $1.name }
     }
 
+    // periphery:ignore - Reserved for summary output mode
     /// Render summary table
-    public func summaryTable(
+    func summaryTable(
         categories: [(name: String, score: Double, weight: Double, contribution: Double)]
     ) -> String {
         let boxWidth = 66
@@ -252,8 +266,9 @@ public struct ASCIIRenderer {
         return output
     }
 
+    // periphery:ignore - Reserved for interactive progress display
     /// Render progress spinner frames
-    public func spinnerFrames() -> [String] {
+    func spinnerFrames() -> [String] {
         return [
             "⠋",
             "⠙",
@@ -325,6 +340,7 @@ public struct ASCIIRenderer {
 
     // MARK: - Helper Methods
 
+    // periphery:ignore - Reserved for weighted display mode
     private func getMetricWeight(for metricId: String, config: Config) -> Double {
         switch metricId {
         case "git.recency":
@@ -350,6 +366,7 @@ public struct ASCIIRenderer {
 
     // MARK: - Color Support
 
+    // periphery:ignore - Reserved for colored output mode
     private func applyColor(_ text: String, code: String) -> String {
         guard colorsEnabled else { return text }
         return code + text + colorReset

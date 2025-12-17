@@ -2,12 +2,12 @@ import Foundation
 import Core
 
 /// Analyzes Swift Package Manager dependencies
-public struct SPMAnalyzer {
+struct SPMAnalyzer {
 
-    public init() {}
+    init() {}
 
     /// Analyze SPM dependencies from Package.resolved
-    public func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
+    func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
         var metrics: [Metric] = []
         var diagnostics: [Diagnostic] = []
 
@@ -133,6 +133,7 @@ public struct SPMAnalyzer {
 
 /// Package.resolved file structure (SPM format)
 private struct PackageResolved: Codable {
+    // periphery:ignore - Required for JSON decoding
     let version: Int?
     let object: ObjectContainer?
     let pins: [Pin]
@@ -165,10 +166,14 @@ private struct PackageResolved: Codable {
 
 private struct Pin: Codable {
     let identity: String
+    // periphery:ignore - Required for JSON decoding
     let location: String?
+    // periphery:ignore - Required for JSON decoding
     let state: PinState?
-    let package: String?  // v1 format
-    let repositoryURL: String?  // v1 format
+    // periphery:ignore - Required for JSON decoding (v1 format)
+    let package: String?
+    // periphery:ignore - Required for JSON decoding (v1 format)
+    let repositoryURL: String?
 
     enum CodingKeys: String, CodingKey {
         case identity
@@ -180,7 +185,10 @@ private struct Pin: Codable {
 }
 
 private struct PinState: Codable {
+    // periphery:ignore - Required for JSON decoding
     let version: String?
+    // periphery:ignore - Required for JSON decoding
     let revision: String?
+    // periphery:ignore - Required for JSON decoding
     let branch: String?
 }

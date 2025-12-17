@@ -3,10 +3,12 @@ import Core
 
 /// Analyzes code metrics (LOC, files, structure)
 public struct CodeAnalyzer: Analyzer {
+    // periphery:ignore - Required by Analyzer protocol
     public let id = "code"
 
     public init() {}
 
+    // periphery:ignore:parameters config - Reserved for future config-based filtering
     public func analyze(_ context: ProjectContext, _ config: Config) async -> AnalyzerResult {
         var metrics: [Metric] = []
         var diagnostics: [Diagnostic] = []

@@ -2,12 +2,12 @@ import Foundation
 import Core
 
 /// Analyzes Carthage dependencies
-public struct CarthageAnalyzer {
+struct CarthageAnalyzer {
 
-    public init() {}
+    init() {}
 
     /// Analyze Carthage dependencies from Cartfile.resolved
-    public func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
+    func analyze(at projectPath: String) -> (metrics: [Metric], diagnostics: [Diagnostic]) {
         var metrics: [Metric] = []
         var diagnostics: [Diagnostic] = []
 
@@ -150,6 +150,7 @@ public struct CarthageAnalyzer {
     struct Dependency {
         let name: String
         let version: String
+        // periphery:ignore - Reserved for enhanced diagnostics
         let type: String
     }
 }

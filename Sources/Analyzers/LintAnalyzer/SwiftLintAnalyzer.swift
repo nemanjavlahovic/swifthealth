@@ -3,10 +3,12 @@ import Core
 
 /// Analyzes SwiftLint violations (warnings and errors)
 public struct SwiftLintAnalyzer: Analyzer {
+    // periphery:ignore - Required by Analyzer protocol
     public let id = "lint"
 
     public init() {}
 
+    // periphery:ignore:parameters config - Reserved for future config-based filtering
     public func analyze(_ context: ProjectContext, _ config: Config) async -> AnalyzerResult {
         var metrics: [Metric] = []
         var diagnostics: [Diagnostic] = []
@@ -146,9 +148,13 @@ public struct SwiftLintAnalyzer: Analyzer {
 private struct SwiftLintViolation: Codable {
     let rule: String           // e.g., "force_cast", "line_length"
     let severity: String       // "warning" or "error"
+    // periphery:ignore - Required for JSON decoding
     let file: String           // File path
+    // periphery:ignore - Required for JSON decoding
     let line: Int?             // Line number
+    // periphery:ignore - Required for JSON decoding
     let character: Int?        // Character position
+    // periphery:ignore - Required for JSON decoding
     let reason: String         // Human-readable explanation
 
     enum CodingKeys: String, CodingKey {

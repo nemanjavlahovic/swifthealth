@@ -1,6 +1,7 @@
 import Foundation
 
 /// Protocol that all analyzers must conform to
+/// periphery:ignore - Protocol used for type conformance
 public protocol Analyzer {
     /// Unique identifier for this analyzer (e.g., "git", "deps", "lint")
     var id: String { get }
@@ -22,6 +23,7 @@ public struct ProjectContext: Equatable {
     public let projectTypes: [ProjectType]
 
     /// Whether to operate in offline mode (no network calls)
+    /// periphery:ignore - Reserved for future network-aware analyzers
     public let offline: Bool
 
     /// Optional paths to specific artifacts
@@ -54,6 +56,7 @@ public struct Artifacts: Equatable {
     public let xcresultPath: String?
 
     /// Path to build logs
+    /// periphery:ignore - Reserved for future build log analyzer
     public let buildLogsPath: String?
 
     public init(
