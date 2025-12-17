@@ -2,7 +2,7 @@ class Swifthealth < Formula
   desc "CLI tool that analyzes Swift project health and generates actionable reports"
   homepage "https://github.com/nemanjavlahovic/swifthealth"
   url "https://github.com/nemanjavlahovic/swifthealth/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "7854c4657238dee6926abbcb971c8f5d1f10689356221609323fca1822587ed3"
+  sha256 "becb45b7a3e4bfaab7f93a95911f6e6a51187acdb49e18240a86495b020bd15f"
   license "MIT"
   head "https://github.com/nemanjavlahovic/swifthealth.git", branch: "main"
 
