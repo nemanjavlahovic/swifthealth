@@ -25,7 +25,26 @@ A command-line tool for analyzing the health of Swift and iOS projects. SwiftHea
 
 ### Installation
 
-#### Option 1: Download Pre-built Binary (Recommended)
+#### Option 1: Homebrew (Recommended)
+
+```bash
+brew install nemanjavlahovic/tap/swifthealth
+```
+
+Or tap first, then install:
+
+```bash
+brew tap nemanjavlahovic/tap
+brew install swifthealth
+```
+
+To install the latest development version from `main`:
+
+```bash
+brew install --HEAD nemanjavlahovic/tap/swifthealth
+```
+
+#### Option 2: Download Pre-built Binary
 
 ```bash
 # Download the latest release (universal binary for Intel + Apple Silicon)
@@ -50,7 +69,7 @@ chmod +x swifthealth
 sudo mv swifthealth /usr/local/bin/
 ```
 
-#### Option 2: Build from Source
+#### Option 3: Build from Source
 
 ```bash
 # Clone and build
