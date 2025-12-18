@@ -67,11 +67,14 @@ struct AnalyzeCommand: AsyncParsableCommand {
             configuration = try ConfigLoader.load(fromDirectory: absolutePath)
         }
 
+        // Create progress tracker based on output format
+        let progress = ProgressTrackerFactory.create(for: format)
+
         if verbose {
-            print("📍 Analyzing project at: \(absolutePath)")
-            print("⚙️  Using config: \(config ?? ".swifthealthrc.json (or defaults)")")
-            print("🌐 Offline mode: \(offline ? "Yes" : "No")")
-            print()
+            progress.status("📍 Analyzing project at: \(absolutePath)")
+            progress.status("⚙️  Using config: \(config ?? ".swifthealthrc.json (or defaults)")")
+            progress.status("🌐 Offline mode: \(offline ? "Yes" : "No")")
+            progress.status("")
         }
 
         // Project discovery
@@ -87,8 +90,8 @@ struct AnalyzeCommand: AsyncParsableCommand {
         )
 
         if verbose {
-            print(detector.summarize(context))
-            print()
+            progress.status(detector.summarize(context))
+            progress.status("")
         }
 
         // Initialize renderer
@@ -120,64 +123,23 @@ struct AnalyzeCommand: AsyncParsableCommand {
         var allMetrics: [Metric] = []
         var allDiagnostics: [Diagnostic] = []
 
-        // Only show progress if not JSON output
-        let showProgress = format != .json
-
         // Run Git Analyzer
         if context.has(.git) {
+            progress.startPhase("Git Analysis", emoji: "📊")
             let gitAnalyzer = GitAnalyzer()
             let gitResult = await gitAnalyzer.analyze(context, configuration)
             allMetrics.append(contentsOf: gitResult.metrics)
             allDiagnostics.append(contentsOf: gitResult.diagnostics)
-
-            if showProgress {
-                print("📊 Git Analysis")
-                print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                for metric in gitResult.metrics {
-                    printMetric(metric)
-                }
-
-                if !gitResult.diagnostics.isEmpty {
-                    print()
-                    print("⚠️  Diagnostics:")
-                    for diagnostic in gitResult.diagnostics {
-                        let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                        print("  \(icon) \(diagnostic.message)")
-                        if let hint = diagnostic.hint {
-                            print("     → \(hint)")
-                        }
-                    }
-                }
-                print()
-            }
+            progress.completePhase(metrics: gitResult.metrics, diagnostics: gitResult.diagnostics, verbose: verbose)
         }
 
         // Run Code Analyzer
+        progress.startPhase("Code Analysis", emoji: "📝")
         let codeAnalyzer = CodeAnalyzer()
         let codeResult = await codeAnalyzer.analyze(context, configuration)
         allMetrics.append(contentsOf: codeResult.metrics)
         allDiagnostics.append(contentsOf: codeResult.diagnostics)
-
-        if showProgress {
-            print("📝 Code Analysis")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            for metric in codeResult.metrics {
-                printMetric(metric)
-            }
-
-            if !codeResult.diagnostics.isEmpty {
-                print()
-                print("⚠️  Diagnostics:")
-                for diagnostic in codeResult.diagnostics {
-                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                    print("  \(icon) \(diagnostic.message)")
-                    if let hint = diagnostic.hint {
-                        print("     → \(hint)")
-                    }
-                }
-            }
-            print()
-        }
+        progress.completePhase(metrics: codeResult.metrics, diagnostics: codeResult.diagnostics, verbose: verbose)
 
         // Run SwiftLint Analyzer
         let lintAnalyzer = SwiftLintAnalyzer()
@@ -185,25 +147,9 @@ struct AnalyzeCommand: AsyncParsableCommand {
         allMetrics.append(contentsOf: lintResult.metrics)
         allDiagnostics.append(contentsOf: lintResult.diagnostics)
 
-        if showProgress && (!lintResult.metrics.isEmpty || !lintResult.diagnostics.isEmpty) {
-            print("🔍 Lint Analysis")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            for metric in lintResult.metrics {
-                printMetric(metric)
-            }
-
-            if !lintResult.diagnostics.isEmpty {
-                print()
-                print("⚠️  Diagnostics:")
-                for diagnostic in lintResult.diagnostics {
-                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                    print("  \(icon) \(diagnostic.message)")
-                    if let hint = diagnostic.hint {
-                        print("     → \(hint)")
-                    }
-                }
-            }
-            print()
+        if !lintResult.metrics.isEmpty || !lintResult.diagnostics.isEmpty {
+            progress.startPhase("Lint Analysis", emoji: "🔍")
+            progress.completePhase(metrics: lintResult.metrics, diagnostics: lintResult.diagnostics, verbose: verbose)
         }
 
         // Run Dependency Analyzer
@@ -212,39 +158,30 @@ struct AnalyzeCommand: AsyncParsableCommand {
         allMetrics.append(contentsOf: depsResult.metrics)
         allDiagnostics.append(contentsOf: depsResult.diagnostics)
 
-        if showProgress && (!depsResult.metrics.isEmpty || !depsResult.diagnostics.isEmpty) {
-            print("📦 Dependency Analysis")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            for metric in depsResult.metrics {
-                printMetric(metric)
-            }
-
-            if !depsResult.diagnostics.isEmpty {
-                print()
-                print("⚠️  Diagnostics:")
-                for diagnostic in depsResult.diagnostics {
-                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                    print("  \(icon) \(diagnostic.message)")
-                    if let hint = diagnostic.hint {
-                        print("     → \(hint)")
-                    }
-                }
-            }
-            print()
+        if !depsResult.metrics.isEmpty || !depsResult.diagnostics.isEmpty {
+            progress.startPhase("Dependency Analysis", emoji: "📦")
+            progress.completePhase(metrics: depsResult.metrics, diagnostics: depsResult.diagnostics, verbose: verbose)
         }
 
-        // Run Dead Code Analyzer
+        // Run Dead Code Analyzer (with spinner - can be slow)
         let deadCodeAnalyzer = DeadCodeAnalyzer()
+
+        // Start spinner for potentially long operation
+        await progress.startSpinner("Scanning for dead code (this may take a minute)...")
+
         let deadCodeResult = await deadCodeAnalyzer.analyze(context, configuration)
         allMetrics.append(contentsOf: deadCodeResult.metrics)
         allDiagnostics.append(contentsOf: deadCodeResult.diagnostics)
 
-        if showProgress && (!deadCodeResult.metrics.isEmpty || !deadCodeResult.diagnostics.isEmpty) {
-            print("🧹 Dead Code Analysis")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            for metric in deadCodeResult.metrics {
-                printMetric(metric)
-            }
+        let hasDeadCodeResults = !deadCodeResult.metrics.isEmpty || !deadCodeResult.diagnostics.isEmpty
+        progress.stopSpinner(
+            success: hasDeadCodeResults,
+            message: hasDeadCodeResults ? "Dead code scan complete" : "Dead code scan skipped (periphery not available)"
+        )
+
+        if hasDeadCodeResults {
+            progress.startPhase("Dead Code Analysis", emoji: "🧹")
+            progress.completePhase(metrics: deadCodeResult.metrics, diagnostics: deadCodeResult.diagnostics, verbose: verbose)
 
             // Show detailed breakdown when verbose is enabled
             if verbose, let metric = deadCodeResult.metrics.first,
@@ -252,19 +189,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
                case let .array(items) = details["items"] {
                 printDeadCodeDetails(items)
             }
-
-            if !deadCodeResult.diagnostics.isEmpty {
-                print()
-                print("⚠️  Diagnostics:")
-                for diagnostic in deadCodeResult.diagnostics {
-                    let icon = diagnostic.level == .error ? "❌" : diagnostic.level == .warning ? "⚠️" : "ℹ️"
-                    print("  \(icon) \(diagnostic.message)")
-                    if let hint = diagnostic.hint {
-                        print("     → \(hint)")
-                    }
-                }
-            }
-            print()
         }
 
         // Calculate overall health score
@@ -309,9 +233,7 @@ struct AnalyzeCommand: AsyncParsableCommand {
         // Check fail-under threshold
         let threshold = failUnder ?? configuration.ci.failUnder
         if healthScore < threshold {
-            if showProgress {
-                print("❌ Score (\(healthScore)) is below threshold (\(threshold))")
-            }
+            progress.status("❌ Score (\(healthScore)) is below threshold (\(threshold))")
             throw ExitCode.failure
         }
     }
@@ -324,26 +246,6 @@ struct AnalyzeCommand: AsyncParsableCommand {
         } else {
             return FileManager.default.currentDirectoryPath + "/" + url.path
         }
-    }
-
-    // Helper to print a metric nicely
-    private func printMetric(_ metric: Metric) {
-        let valueStr: String
-        switch metric.value {
-        case .double(let val):
-            valueStr = String(format: "%.2f", val)
-        case .int(let val):
-            valueStr = "\(val)"
-        case .string(let val):
-            valueStr = val
-        case .percent(let val):
-            valueStr = String(format: "%.1f%%", val * 100)
-        case .duration(let val):
-            valueStr = String(format: "%.2fs", val)
-        }
-
-        let unitStr = metric.unit.map { " \($0)" } ?? ""
-        print("  \(metric.title): \(valueStr)\(unitStr)")
     }
 
     private func printDeadCodeDetails(_ items: [CodableValue]) {
@@ -394,15 +296,5 @@ struct AnalyzeCommand: AsyncParsableCommand {
             }
             print()
         }
-    }
-}
-
-// Output format enum
-enum OutputFormat: String, ExpressibleByArgument {
-    case tty
-    case json
-
-    init?(argument: String) {
-        self.init(rawValue: argument.lowercased())
     }
 }
