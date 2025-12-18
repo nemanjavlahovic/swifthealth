@@ -27,6 +27,9 @@ xcuserdata/
 *.a
 *.dylib
 
+# Context/planning files
+context/
+
 # AI-generated iteration files
 00_READ_ME_FIRST.md
 ANALYSIS_INDEX.md
