@@ -282,6 +282,21 @@ swifthealth init
 
 ### GitHub Actions
 
+SwiftHealth includes a comprehensive GitHub Actions workflow example with:
+- Automatic health checks on PRs and pushes
+- PR comments showing score with emoji indicators
+- Artifact storage for historical tracking
+- Optional health gate to block PRs that degrade score
+
+**Quick Setup:**
+
+```bash
+# Copy the example workflow to your project
+cp .github/workflows/health-check.yml.example .github/workflows/health-check.yml
+```
+
+Or create your own minimal workflow:
+
 ```yaml
 name: Health Check
 on: [push, pull_request]
@@ -291,16 +306,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git metrics
 
       - name: Install SwiftHealth
-        run: |
-          curl -L -o swifthealth https://github.com/nemanjavlahovic/swifthealth/releases/latest/download/swifthealth-universal
-          chmod +x swifthealth
-          sudo mv swifthealth /usr/local/bin/
+        run: brew install nemanjavlahovic/tap/swifthealth
 
       - name: Run Health Check
-        run: |
-          swifthealth analyze --format json --json-out health.json --fail-under 70
+        run: swifthealth analyze --format json --json-out health.json --fail-under 70
 
       - name: Upload Report
         uses: actions/upload-artifact@v4
@@ -308,6 +321,10 @@ jobs:
           name: health-report
           path: health.json
 ```
+
+**Configuration:**
+- Set `HEALTH_THRESHOLD` variable in repository settings (default: 70)
+- Uncomment the `health-gate` job in the example to block PRs that drop score by >5 points
 
 ### Pre-commit Hook
 
