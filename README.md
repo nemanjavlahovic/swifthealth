@@ -93,8 +93,26 @@ swifthealth analyze --path ~/Projects/MyApp
 # JSON output for CI
 swifthealth analyze --format json --json-out report.json
 
+# HTML report with embedded charts
+swifthealth analyze --html-out report.html
+
 # Fail if score below threshold
 swifthealth analyze --fail-under 80
+
+# Include build analysis (requires Xcode build log)
+swifthealth analyze --build-log ~/Library/Developer/Xcode/DerivedData/MyApp-xxx/Logs/Build/*.xcactivitylog
+
+# Include Xcode warnings from xcresult bundle
+swifthealth analyze --xcresult ~/path/to/Test.xcresult
+
+# Analyze binary size
+swifthealth analyze --app-path ~/path/to/MyApp.app
+
+# Offline mode (skip network calls for dependency checking)
+swifthealth analyze --offline
+
+# View health score history and trends
+swifthealth history --count 20 --chart
 ```
 
 ---
@@ -102,7 +120,7 @@ swifthealth analyze --fail-under 80
 ## Example Output
 
 ```
-SwiftHealth v0.1.0
+SwiftHealth v0.2.0
 Analyzing: /Users/dev/MyProject
 
 ✅ Detected: git, spm
@@ -145,7 +163,7 @@ Analyzing: /Users/dev/MyProject
 {
   "tool": {
     "name": "swifthealth",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "project": {
     "root": "/Users/dev/MyProject",
@@ -205,8 +223,39 @@ Analyzing: /Users/dev/MyProject
 - **SPM**: Parses Package.resolved for Swift Package Manager deps
 - **CocoaPods**: Parses Podfile.lock for CocoaPods deps
 - **Carthage**: Parses Cartfile.resolved for Carthage deps
-- **Outdated Detection**: Flags potentially outdated dependencies (lockfile age-based)
+- **Online Outdated Detection**: Fetches latest versions from GitHub with rate limit handling
+- **Offline Mode**: Use `--offline` to skip network calls
 - **Multi-Manager**: Handles projects using multiple dependency managers
+
+### ⏱️ Build Time Analysis
+- **Build Log Parsing**: Analyzes Xcode `.xcactivitylog` files from DerivedData
+- **Slow File Detection**: Identifies files that take longest to compile
+- **Clean vs Incremental**: Tracks clean and incremental build times
+- **Usage**: `swifthealth analyze --build-log /path/to/build.xcactivitylog`
+
+### ⚠️ Xcode Warnings Analysis
+- **xcresult Parsing**: Extracts warnings from `.xcresult` bundles
+- **Warning Categories**: Groups warnings by type (deprecation, unused, etc.)
+- **Actionable Items**: Links warnings to specific files and lines
+- **Usage**: `swifthealth analyze --xcresult /path/to/Test.xcresult`
+
+### 📏 Binary Size Analysis
+- **App Bundle Analysis**: Analyzes `.app` bundles for size breakdown
+- **Framework Detection**: Identifies embedded frameworks and their sizes
+- **Asset Catalogs**: Reports asset catalog sizes
+- **Usage**: `swifthealth analyze --app-path /path/to/MyApp.app`
+
+### 📈 Historical Trends
+- **Automatic Tracking**: Scores are saved to `~/.swifthealth/history/` after each run
+- **Trend Visualization**: ASCII charts show score changes over time
+- **JSON Export**: Export history for external analysis
+- **Usage**: `swifthealth history --count 20 --chart`
+
+### 📄 HTML Reports
+- **Beautiful Reports**: Generate self-contained HTML reports with embedded CSS
+- **SVG Charts**: Interactive score history visualization
+- **Shareable**: Single file, no external dependencies
+- **Usage**: `swifthealth analyze --html-out report.html`
 
 ### 🎯 Scoring System
 
@@ -354,16 +403,22 @@ SwiftHealth is built with a **modular, protocol-oriented architecture** using Sw
 ```
 SwiftHealth/
 ├── Sources/
-│   ├── Core/              # Shared models and utilities
-│   │   ├── Models/        # Metric, Config, AnalyzerResult
-│   │   ├── Config/        # ConfigLoader with validation
-│   │   └── Scoring/       # ScoreEngine with normalization
-│   ├── Analyzers/         # Analysis implementations
-│   │   ├── GitAnalyzer/   # Git metrics via Process API
-│   │   └── CodeAnalyzer/  # LOC counting, file scanning
-│   └── SwiftHealthCLI/    # CLI entry point
-│       ├── Commands/      # ArgumentParser commands
-│       └── Renderers/     # TTY and JSON output
+│   ├── Core/                  # Shared models and utilities
+│   │   ├── Models/            # Metric, Config, AnalyzerResult
+│   │   ├── Config/            # ConfigLoader with validation
+│   │   ├── History/           # HistoryManager, HistoryEntry
+│   │   └── Scoring/           # ScoreEngine with normalization
+│   ├── Analyzers/             # Analysis implementations
+│   │   ├── GitAnalyzer/       # Git metrics via Process API
+│   │   ├── CodeAnalyzer/      # LOC counting, file scanning
+│   │   ├── BuildAnalyzer/     # Xcode build time analysis
+│   │   ├── SizeAnalyzer/      # Binary size analysis
+│   │   ├── XcodeAnalyzer/     # Xcode warnings from xcresult
+│   │   └── DependencyAnalyzer/ # SPM, CocoaPods, Carthage + online checking
+│   └── SwiftHealthCLI/        # CLI entry point
+│       ├── Commands/          # analyze, history, init commands
+│       ├── Progress/          # Animated progress indicators
+│       └── Renderers/         # TTY, JSON, and HTML output
 └── Package.swift
 ```
 
@@ -423,14 +478,18 @@ case "tests.coverage":
 - [x] **Dependency Analysis**: SPM, CocoaPods, Carthage with outdated detection
 - [x] **JSON Output**: CI/CD ready with per-metric scores
 - [x] **Weighted Scoring**: Configurable weights and thresholds
+- [x] **Build Performance**: Analyze build times from Xcode `.xcactivitylog` files *(v0.2.0)*
+- [x] **Online Outdated Detection**: GitHub API integration for real-time version checking *(v0.2.0)*
+- [x] **Historical Trends**: Track score over time with ASCII charts *(v0.2.0)*
+- [x] **HTML Reports**: Beautiful self-contained reports with SVG charts *(v0.2.0)*
+- [x] **Xcode Warnings**: Parse `.xcresult` bundles for warnings analysis *(v0.2.0)*
+- [x] **Binary Size Analysis**: Analyze `.app` bundles for size breakdown *(v0.2.0)*
 
 ### Planned
 - [ ] **Test Coverage Analysis**: Parse .xcresult bundles for coverage data
-- [ ] **Build Performance**: Analyze build times from Xcode logs
-- [ ] **Online Outdated Detection**: Git remote tag comparison for dependency freshness
-- [ ] **Historical Trends**: Track score over time, show improvement/regression
-- [ ] **HTML Reports**: Beautiful web-based reports with charts
 - [ ] **Xcode Extension**: Run SwiftHealth directly in Xcode
+- [ ] **GitHub Action**: Official action for easy CI integration
+- [ ] **Baseline Support**: Compare against a baseline score for regressions
 
 ---
 
