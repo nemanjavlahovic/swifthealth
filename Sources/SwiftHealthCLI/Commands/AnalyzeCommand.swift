@@ -139,7 +139,7 @@ struct AnalyzeCommand: AsyncParsableCommand {
             // Display header banner
             let enabledAnalyzers = context.projectTypes.map { $0.rawValue }
             let banner = asciiRenderer.headerBanner(
-                version: "0.1.0",
+                version: "0.2.0",
                 path: absolutePath,
                 analyzers: enabledAnalyzers
             )

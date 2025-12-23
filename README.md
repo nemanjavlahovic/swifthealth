@@ -120,41 +120,67 @@ swifthealth history --count 20 --chart
 ## Example Output
 
 ```
-SwiftHealth v0.2.0
-Analyzing: /Users/dev/MyProject
+  ███████╗██╗    ██╗██╗███████╗████████╗██╗  ██╗███████╗ █████╗ ██╗  ████████╗██╗  ██╗
+  ██╔════╝██║    ██║██║██╔════╝╚══██╔══╝██║  ██║██╔════╝██╔══██╗██║  ╚══██╔══╝██║  ██║
+  ███████╗██║ █╗ ██║██║█████╗     ██║   ███████║█████╗  ███████║██║     ██║   ███████║
+  ╚════██║██║███╗██║██║██╔══╝     ██║   ██╔══██║██╔══╝  ██╔══██║██║     ██║   ██╔══██║
+  ███████║╚███╔███╔╝██║██║        ██║   ██║  ██║███████╗██║  ██║███████╗██║   ██║  ██║
+  ╚══════╝ ╚══╝╚══╝ ╚═╝╚═╝        ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝  ╚═╝
 
-✅ Detected: git, spm
+  🏥  v0.2.0  •  Project Health Analyzer
+
+  📍 /Users/dev/MyProject
+  🔍 git, spm
 
 🔍 Running analyzers...
 
 📊 Git Analysis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Last Commit Recency: 0.30 days
-  Active Contributors (30 days): 1 count
-  Commit Message Quality: 40.0%
-  Conventional Commits: 0.0% percent
+  Last Commit Recency: 2.50 days
+  Active Contributors (30 days): 3 count
+  Commit Message Quality: 78.5%
+  Conventional Commits: 85.0% percent
   Branch Strategy: trunk-based
-  Total Branches: 2 count
+  Total Branches: 4 count
   Merge Strategy: rebase-heavy
-  Merge Commit Percentage: 0.0%
-  Average Commits Per Day: 0.07 commits/day
-  Commit Frequency Trend: increasing
-
-⚠️  Diagnostics:
-  ℹ️ Only 0% of commits follow conventional commit format
-     → See https://www.conventionalcommits.org/
 
 📝 Code Analysis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Total Code Files: 18 files
-  Total Lines of Code: 1985 lines
-  Comment Density: 14.6%
-  Average File Size: 110 lines/file
+  Total Code Files: 43 files
+  Total Lines of Code: 6857 lines
+  Comment Density: 14.1%
+  Average File Size: 159 lines/file
   Swift Percentage: 100.0%
 
+📦 Dependency Analysis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SPM Dependencies: 6 count
+  SPM Lockfile Age: 5.05 days
+  Potentially Outdated Dependencies: 0 count
 
-🏥 Health Score: 64/100 🔴 (Poor)
+⏱️ Build Time Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DerivedData Size: 1250.00 MB
+
+📦 Size Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SPM Release Build Size: 12.50 MB
+  SPM Debug Build Size: 45.20 MB
+
+╔════════════════════════════════════════════════════════════════════╗
+║                          🏥 HEALTH SCORE                           ║
+╠════════════════════════════════════════════════════════════════════╣
+║                                                                    ║
+║    0    10   20   30   40   50   60   70   80   90    100          ║
+║    ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤             ║
+║    ├▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░┤           ║
+║    ├─────────────────────────────────────●─────────────┤           ║
+║           🔴 Poor         🟠 Fair    🟡 Good    🟢 Excellent       ║
+║                                       ▲                            ║
+║                                    85/100                          ║
+║                                                                    ║
+╚════════════════════════════════════════════════════════════════════╝
+  ~ +3.2% from last run
 ```
 
 ### JSON Output
@@ -169,27 +195,28 @@ Analyzing: /Users/dev/MyProject
     "root": "/Users/dev/MyProject",
     "detected": ["git", "spm"]
   },
-  "score": 64,
-  "scoreNormalized": 0.64,
-  "band": "red",
+  "score": 85,
+  "scoreNormalized": 0.85,
+  "band": "green",
   "metrics": [
     {
       "id": "git.recency",
       "title": "Last Commit Recency",
       "category": "git",
-      "value": {"type": "double", "value": 0.30},
+      "value": {"type": "double", "value": 2.50},
       "unit": "days"
+    },
+    {
+      "id": "build.derivedDataSize",
+      "title": "DerivedData Size",
+      "category": "build",
+      "value": {"type": "double", "value": 1250.00},
+      "unit": "MB"
     }
     // ... more metrics
   ],
-  "diagnostics": [
-    {
-      "level": "info",
-      "message": "Only 0% of commits follow conventional commit format",
-      "hint": "See https://www.conventionalcommits.org/"
-    }
-  ],
-  "timestamp": "2025-10-26T20:03:31Z"
+  "diagnostics": [...],
+  "timestamp": "2025-12-23T10:30:00Z"
 }
 ```
 

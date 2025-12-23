@@ -17,7 +17,7 @@ struct JSONRenderer {
         projectTypes: [ProjectType]
     ) -> String {
         let report = JSONReport(
-            tool: ToolInfo(name: "swifthealth", version: "0.1.0"),
+            tool: ToolInfo(name: "swifthealth", version: "0.2.0"),
             project: ProjectInfo(
                 root: projectPath,
                 detected: projectTypes
