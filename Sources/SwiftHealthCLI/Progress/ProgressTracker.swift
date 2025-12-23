@@ -138,7 +138,7 @@ public enum ProgressTrackerFactory {
     /// Creates the appropriate progress tracker based on output format
     public static func create(for format: OutputFormat) -> ProgressTracker {
         switch format {
-        case .json:
+        case .json, .html:
             return SilentProgressTracker()
         case .tty:
             return ConsoleProgressTracker()
@@ -152,6 +152,7 @@ public enum ProgressTrackerFactory {
 public enum OutputFormat: String, ExpressibleByArgument, Sendable {
     case tty
     case json
+    case html
 
     public init?(argument: String) {
         self.init(rawValue: argument.lowercased())

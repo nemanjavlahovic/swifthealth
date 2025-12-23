@@ -69,9 +69,12 @@ public struct ConfigLoader {
             config.weights.lintWarnings,
             config.weights.lintErrors,
             config.weights.codeLOC,
+            config.weights.deadCodeUnused,
             config.weights.codeStructure,
             config.weights.testCoverage,
-            config.weights.buildAvgTime
+            config.weights.buildAvgTime,
+            config.weights.xcodeWarnings,
+            config.weights.appSize
         ]
 
         for weight in weightsArray {
@@ -117,6 +120,18 @@ public struct ConfigLoader {
         guard thresholds.buildAvgTimeWarnSec < thresholds.buildAvgTimeFailSec else {
             throw ConfigError.invalidThresholds(
                 "build.avgTime.warnSec must be < failSec"
+            )
+        }
+
+        guard thresholds.xcodeWarningsWarn < thresholds.xcodeWarningsFail else {
+            throw ConfigError.invalidThresholds(
+                "xcode.warnings.warn must be < fail"
+            )
+        }
+
+        guard thresholds.appSizeWarnMB < thresholds.appSizeFailMB else {
+            throw ConfigError.invalidThresholds(
+                "size.total.warnMB must be < failMB"
             )
         }
 

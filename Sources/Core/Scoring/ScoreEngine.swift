@@ -3,6 +3,41 @@ import Foundation
 /// Calculates overall health score from metrics
 public struct ScoreEngine {
 
+    // MARK: - Scoring Constants
+
+    /// Score bands
+    private enum ScoreConstants {
+        /// Perfect score
+        static let perfect: Double = 1.0
+        /// Good score (above warn threshold)
+        static let good: Double = 0.8
+        /// Fair score (above fail threshold)
+        static let fair: Double = 0.2
+        /// Minimum score
+        static let minimum: Double = 0.0
+        /// Neutral/unknown metric score
+        static let neutral: Double = 0.5
+
+        /// Score reduction in "good" range (perfect -> good)
+        static let goodRangeDecay: Double = 0.2
+        /// Score reduction in "warn" range (good -> fair)
+        static let warnRangeDecay: Double = 0.6
+
+        /// Exponential decay divisor for dead code beyond fail threshold
+        static let deadCodeDecayRate: Double = 50.0
+        /// Exponential decay divisor for build time beyond fail threshold
+        static let buildTimeDecayRate: Double = 60.0
+        /// Exponential decay divisor for total build time beyond fail threshold
+        static let totalBuildTimeDecayRate: Double = 300.0
+        /// Exponential decay divisor for app size beyond fail threshold
+        static let appSizeDecayRate: Double = 100.0
+        /// Exponential decay divisor for warnings beyond fail threshold
+        static let warningsDecayRate: Double = 50.0
+
+        /// Multiplier for total build time thresholds (relative to per-file)
+        static let totalBuildTimeMultiplier: Double = 10.0
+    }
+
     public init() {}
 
     /// Calculate health score from metrics
@@ -99,6 +134,20 @@ public struct ScoreEngine {
         case "deadcode.unused_count":
             return normalizeDeadCodeUnused(metric, config.thresholds)
 
+        // Build metrics
+        case "build.avgFileTime":
+            return normalizeBuildTime(metric, config.thresholds)
+        case "build.compileTime", "build.totalTime":
+            return normalizeTotalBuildTime(metric, config.thresholds)
+
+        // Xcode warnings
+        case "xcode.warnings.total":
+            return normalizeXcodeWarnings(metric, config.thresholds)
+
+        // Size metrics
+        case "size.total":
+            return normalizeAppSize(metric, config.thresholds)
+
         default:
             // Unknown metrics default to 0.5 (neutral)
             return 0.5
@@ -128,6 +177,12 @@ public struct ScoreEngine {
             return 0.0  // These inform deps.outdated but don't have separate weight
         case "deadcode.unused_count":
             return config.weights.deadCodeUnused
+        case "build.avgFileTime", "build.compileTime", "build.totalTime":
+            return config.weights.buildAvgTime
+        case "xcode.warnings.total":
+            return config.weights.xcodeWarnings
+        case "size.total":
+            return config.weights.appSize
         default:
             return 0.0
         }
@@ -350,6 +405,102 @@ public struct ScoreEngine {
         } else {
             // Beyond fail threshold - exponential decay
             return max(0.0, 0.2 * exp(-(countDouble - fail) / 50.0))
+        }
+    }
+
+    private func normalizeBuildTime(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        let seconds: Double
+        switch metric.value {
+        case .duration(let s):
+            seconds = s
+        case .double(let s):
+            seconds = s
+        default:
+            return ScoreConstants.neutral
+        }
+
+        let warn = Double(thresholds.buildAvgTimeWarnSec)
+        let fail = Double(thresholds.buildAvgTimeFailSec)
+
+        // Fast builds = good
+        if seconds <= warn {
+            return ScoreConstants.perfect - (seconds / warn) * ScoreConstants.goodRangeDecay
+        } else if seconds <= fail {
+            return ScoreConstants.good - ((seconds - warn) / (fail - warn)) * ScoreConstants.warnRangeDecay
+        } else {
+            // Very slow builds - exponential decay
+            return max(ScoreConstants.minimum, ScoreConstants.fair * exp(-(seconds - fail) / ScoreConstants.buildTimeDecayRate))
+        }
+    }
+
+    private func normalizeTotalBuildTime(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        let seconds: Double
+        switch metric.value {
+        case .duration(let s):
+            seconds = s
+        case .double(let s):
+            seconds = s
+        default:
+            return ScoreConstants.neutral
+        }
+
+        // Total build time thresholds (more lenient than per-file)
+        let warnSeconds = Double(thresholds.buildAvgTimeWarnSec) * ScoreConstants.totalBuildTimeMultiplier
+        let failSeconds = Double(thresholds.buildAvgTimeFailSec) * ScoreConstants.totalBuildTimeMultiplier
+
+        if seconds <= warnSeconds {
+            return ScoreConstants.perfect - (seconds / warnSeconds) * ScoreConstants.goodRangeDecay
+        } else if seconds <= failSeconds {
+            return ScoreConstants.good - ((seconds - warnSeconds) / (failSeconds - warnSeconds)) * ScoreConstants.warnRangeDecay
+        } else {
+            return max(ScoreConstants.minimum, ScoreConstants.fair * exp(-(seconds - failSeconds) / ScoreConstants.totalBuildTimeDecayRate))
+        }
+    }
+
+    private func normalizeXcodeWarnings(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        guard case .int(let count) = metric.value else { return ScoreConstants.neutral }
+
+        let warn = Double(thresholds.xcodeWarningsWarn)
+        let fail = Double(thresholds.xcodeWarningsFail)
+
+        // Perfect score if no warnings
+        if count == 0 {
+            return ScoreConstants.perfect
+        }
+
+        let countDouble = Double(count)
+        if countDouble <= warn {
+            return ScoreConstants.perfect - (countDouble / warn) * ScoreConstants.goodRangeDecay
+        } else if countDouble <= fail {
+            return ScoreConstants.good - ((countDouble - warn) / (fail - warn)) * ScoreConstants.warnRangeDecay
+        } else {
+            // Beyond fail threshold - exponential decay
+            return max(ScoreConstants.minimum, ScoreConstants.fair * exp(-(countDouble - fail) / ScoreConstants.warningsDecayRate))
+        }
+    }
+
+    private func normalizeAppSize(_ metric: Metric, _ thresholds: Thresholds) -> Double {
+        let sizeMB: Double
+        switch metric.value {
+        case .double(let mb):
+            sizeMB = mb
+        case .int(let mb):
+            sizeMB = Double(mb)
+        default:
+            return ScoreConstants.neutral
+        }
+
+        let warn = Double(thresholds.appSizeWarnMB)
+        let fail = Double(thresholds.appSizeFailMB)
+
+        // Small apps are good
+        if sizeMB <= warn {
+            return ScoreConstants.perfect - (sizeMB / warn) * ScoreConstants.goodRangeDecay
+        } else if sizeMB <= fail {
+            return ScoreConstants.good - ((sizeMB - warn) / (fail - warn)) * ScoreConstants.warnRangeDecay
+        } else {
+            // Very large apps - exponential decay
+            return max(ScoreConstants.minimum, ScoreConstants.fair * exp(-(sizeMB - fail) / ScoreConstants.appSizeDecayRate))
         }
     }
 }

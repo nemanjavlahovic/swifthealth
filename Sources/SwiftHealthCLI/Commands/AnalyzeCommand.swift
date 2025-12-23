@@ -41,6 +41,12 @@ struct AnalyzeCommand: AsyncParsableCommand {
 
     @Option(
         name: .long,
+        help: "Write HTML report to file (default: swifthealth-report.html)"
+    )
+    var htmlOut: String?
+
+    @Option(
+        name: .long,
         help: "Minimum score to pass (0-100). Exits with code 1 if score is below this."
     )
     var failUnder: Int?
@@ -50,6 +56,30 @@ struct AnalyzeCommand: AsyncParsableCommand {
         help: "Verbose output"
     )
     var verbose: Bool = false
+
+    @Flag(
+        name: .long,
+        help: "Skip saving to history file"
+    )
+    var noHistory: Bool = false
+
+    @Option(
+        name: .long,
+        help: "Path to Xcode build log for build time analysis"
+    )
+    var buildLog: String?
+
+    @Option(
+        name: .long,
+        help: "Path to .xcresult bundle for Xcode warnings analysis"
+    )
+    var xcresult: String?
+
+    @Option(
+        name: .long,
+        help: "Path to .app bundle for size analysis"
+    )
+    var appPath: String?
 
     mutating func run() async throws {
         // Get absolute path
@@ -81,12 +111,18 @@ struct AnalyzeCommand: AsyncParsableCommand {
         let detector = ProjectDetector()
         var context = detector.discover(at: absolutePath)
 
-        // Override offline setting from CLI flag
+        // Override settings from CLI flags and merge artifacts
+        let mergedArtifacts = Artifacts(
+            derivedDataPath: context.artifacts.derivedDataPath,
+            xcresultPath: xcresult.map { getAbsolutePath($0) } ?? context.artifacts.xcresultPath,
+            buildLogsPath: buildLog.map { getAbsolutePath($0) } ?? context.artifacts.buildLogsPath
+        )
+
         context = ProjectContext(
             rootPath: context.rootPath,
             projectTypes: context.projectTypes,
             offline: offline,
-            artifacts: context.artifacts
+            artifacts: mergedArtifacts
         )
 
         if verbose {
@@ -98,8 +134,8 @@ struct AnalyzeCommand: AsyncParsableCommand {
         let asciiRenderer = ASCIIRenderer()
 
         // Run analyzers
-        // Only show TTY output if not JSON format
-        if format != .json {
+        // Only show TTY output if not JSON or HTML format
+        if format == .tty {
             // Display header banner
             let enabledAnalyzers = context.projectTypes.map { $0.rawValue }
             let banner = asciiRenderer.headerBanner(
@@ -191,13 +227,72 @@ struct AnalyzeCommand: AsyncParsableCommand {
             }
         }
 
+        // Run Build Time Analyzer (if build log provided or DerivedData available)
+        let buildAnalyzer = BuildTimeAnalyzer()
+        let buildResult = await buildAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: buildResult.metrics)
+        allDiagnostics.append(contentsOf: buildResult.diagnostics)
+
+        if !buildResult.metrics.isEmpty {
+            progress.startPhase("Build Time Analysis", emoji: "⏱️")
+            progress.completePhase(metrics: buildResult.metrics, diagnostics: buildResult.diagnostics, verbose: verbose)
+        }
+
+        // Run Xcode Warnings Analyzer (if xcresult provided)
+        let xcodeAnalyzer = XcodeWarningsAnalyzer()
+        let xcodeResult = await xcodeAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: xcodeResult.metrics)
+        allDiagnostics.append(contentsOf: xcodeResult.diagnostics)
+
+        if !xcodeResult.metrics.isEmpty {
+            progress.startPhase("Xcode Warnings Analysis", emoji: "⚠️")
+            progress.completePhase(metrics: xcodeResult.metrics, diagnostics: xcodeResult.diagnostics, verbose: verbose)
+        }
+
+        // Run Binary Size Analyzer (if app path provided or build products found)
+        let sizeAnalyzer = BinarySizeAnalyzer()
+        let sizeResult = await sizeAnalyzer.analyze(context, configuration)
+        allMetrics.append(contentsOf: sizeResult.metrics)
+        allDiagnostics.append(contentsOf: sizeResult.diagnostics)
+
+        if !sizeResult.metrics.isEmpty {
+            progress.startPhase("Size Analysis", emoji: "📦")
+            progress.completePhase(metrics: sizeResult.metrics, diagnostics: sizeResult.diagnostics, verbose: verbose)
+        }
+
         // Calculate overall health score
         let scoreEngine = ScoreEngine()
         let (enrichedMetrics, normalizedScore, band) = scoreEngine.calculateScore(metrics: allMetrics, config: configuration)
         let healthScore = Int(normalizedScore * 100)
 
+        // History management
+        let historyManager = HistoryManager(projectPath: absolutePath)
+        let previousTrend = historyManager.calculateTrend()
+
+        // Save to history (unless --no-history flag is set)
+        if !noHistory {
+            let gitCommit = HistoryManager.getCurrentCommit(at: absolutePath)
+            let gitBranch = HistoryManager.getCurrentBranch(at: absolutePath)
+
+            do {
+                try historyManager.recordAnalysis(
+                    score: normalizedScore,
+                    band: band.rawValue,
+                    metrics: enrichedMetrics,
+                    gitCommit: gitCommit,
+                    gitBranch: gitBranch
+                )
+            } catch {
+                // Non-fatal: just log if verbose
+                if verbose {
+                    progress.status("Warning: Could not save history: \(error.localizedDescription)")
+                }
+            }
+        }
+
         // Render output based on format
-        if format == .json {
+        switch format {
+        case .json:
             let renderer = JSONRenderer()
             let jsonOutput = renderer.render(
                 metrics: enrichedMetrics,
@@ -215,17 +310,46 @@ struct AnalyzeCommand: AsyncParsableCommand {
             } else {
                 print(jsonOutput)
             }
-        } else {
+
+        case .html:
+            let renderer = HTMLRenderer(projectPath: absolutePath)
+            let htmlOutput = renderer.render(
+                metrics: enrichedMetrics,
+                score: healthScore,
+                band: band,
+                diagnostics: allDiagnostics,
+                projectPath: absolutePath,
+                projectTypes: context.projectTypes
+            )
+
+            // Determine output path
+            let outputPath = htmlOut ?? "swifthealth-report.html"
+            let outputURL = URL(fileURLWithPath: getAbsolutePath(outputPath))
+            try htmlOutput.write(to: outputURL, atomically: true, encoding: .utf8)
+            print("HTML report written to: \(outputURL.path)")
+
+        case .tty:
             // TTY output
             print()
             let scoreMeter = asciiRenderer.healthScoreMeter(score: healthScore, band: band)
             print(scoreMeter)
+
+            // Show trend from previous run
+            if let deltaFromLast = previousTrend.deltaFromLast {
+                let sign = deltaFromLast >= 0 ? "+" : ""
+                let deltaPercent = deltaFromLast * 100
+                let trendEmoji = deltaFromLast > 0.02 ? "+" : (deltaFromLast < -0.02 ? "-" : "~")
+                print("  \(trendEmoji) \(sign)\(String(format: "%.1f", deltaPercent))% from last run")
+            }
             print()
 
             if verbose {
                 print("Configuration:")
                 print("  Weights total: \(configuration.weights.total)")
                 print("  CI fail-under: \(configuration.ci.failUnder)")
+                if previousTrend.entryCount > 0 {
+                    print("  History entries: \(previousTrend.entryCount)")
+                }
                 print()
             }
         }

@@ -11,6 +11,7 @@ struct SwiftHealthCLI: AsyncParsableCommand {
             AnalyzeCommand.self,
             InitCommand.self,
             ExplainCommand.self,
+            HistoryCommand.self,
         ],
         defaultSubcommand: AnalyzeCommand.self
     )
