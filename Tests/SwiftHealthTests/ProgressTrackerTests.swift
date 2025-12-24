@@ -1,5 +1,4 @@
 import XCTest
-@testable import SwiftHealthCLI
 @testable import Core
 
 /// Tests for ProgressTracker implementations
@@ -149,13 +148,13 @@ final class ProgressTrackerTests: XCTestCase {
 
     // MARK: - ProgressTrackerFactory Tests
 
-    func testProgressTrackerFactory_createsTTYTracker() {
-        let tracker = ProgressTrackerFactory.create(for: .tty)
+    func testProgressTrackerFactory_createsConsoleTracker() {
+        let tracker = ProgressTrackerFactory.create(for: .console)
         XCTAssertTrue(tracker is ConsoleProgressTracker)
     }
 
-    func testProgressTrackerFactory_createsJSONTracker() {
-        let tracker = ProgressTrackerFactory.create(for: .json)
+    func testProgressTrackerFactory_createsSilentTracker() {
+        let tracker = ProgressTrackerFactory.create(for: .silent)
         XCTAssertTrue(tracker is SilentProgressTracker)
     }
 
